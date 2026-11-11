@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "肿胀孢 Brute"
+hearing = 260.0
+move_speed = 55.0
+max_health = 120.0
+attack_power = 15.0
+alert_radius = 300.0
+behavior = "elite"
+tint = Color(0.62, 0.3, 0.85, 1)
+scale_mult = 1.6
+spawn_weight_tier0 = 0.0
+spawn_weight_per_tier = 0.15

@@ -4,6 +4,7 @@ extends Node
 
 signal difficulty_changed(tier: int)
 signal game_over(final_score: int, survived_time: float)
+signal weapon_leveled(level: int)
 
 var survived_time: float = 0.0
 var score: int = 0
@@ -13,6 +14,11 @@ var is_running: bool = false
 
 var combo: int = 0
 var combo_timer: float = 0.0
+var max_combo: int = 0
+
+# 武器升级线：拾取孢子晶体累积，攒满升级（射速/弹伤/弹道数成长）
+var weapon_level: int = 1
+var crystals: int = 0
 
 # 难度抬档时间阈值（秒）—— 前 2 分宽松，之后每 2/4/8 分抬档（§11.4.4 / §6）
 const TIER_THRESHOLDS: Array = [0.0, 120.0, 240.0, 480.0]
@@ -54,7 +60,10 @@ func start_run() -> void:
 	kill_count = 0
 	combo = 0
 	combo_timer = 0.0
+	max_combo = 0
 	difficulty_tier = 0
+	weapon_level = 1
+	crystals = 0
 	is_running = true
 
 func end_run() -> void:
@@ -66,6 +75,22 @@ func register_kill(points: int = 10) -> void:
 	score += points
 	combo += 1
 	combo_timer = 2.5
+	max_combo = maxi(max_combo, combo)
+
+# ---------- 武器升级 ----------
+# 升一级所需晶体数：lv1→3, lv2→4, lv3→5 ...（前期快、后期渐慢）
+func crystals_for_next() -> int:
+	return weapon_level + 2
+
+func add_crystal() -> void:
+	crystals += 1
+	var leveled := false
+	while crystals >= crystals_for_next():
+		crystals -= crystals_for_next()
+		weapon_level += 1
+		leveled = true
+	if leveled:
+		weapon_leveled.emit(weapon_level)
 
 func _process(delta: float) -> void:
 	if combo_timer > 0.0:

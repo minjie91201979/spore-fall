@@ -48,3 +48,11 @@ offset_right = 360.0
 offset_bottom = 30.0
 position = Vector2(20, 134)
 text = "AMMO 20"
+
+[node name="WeaponLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 30.0
+position = Vector2(20, 172)
+text = "WEAPON LV1"

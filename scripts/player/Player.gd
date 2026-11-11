@@ -5,20 +5,31 @@ const SPEED: float = 220.0
 
 @export var max_health: float = 100.0
 @export var bullet_scene: PackedScene
+@export var infinite_ammo: bool = true   # 垂直切片阶段弹药无限（关掉即恢复消耗制）
 
 var health: float = 100.0
 var ammo: int = 20
 var is_dead: bool = false
 var _last_dir: Vector2 = Vector2.RIGHT
+var _fire_cd: float = 0.0
+
+# 武器数值（由 GameState.weapon_level 派生，升级即刷新）
+var fire_interval: float = 0.22
+var bullet_damage: float = 12.0
+var projectile_count: int = 1
 
 @onready var flashlight: PointLight2D = $Flashlight
 
 func _ready() -> void:
 	add_to_group("player")
+	GameState.weapon_leveled.connect(_on_weapon_leveled)
+	_apply_weapon_level()
 
 func _physics_process(_delta: float) -> void:
 	if is_dead:
 		return
+	if _fire_cd > 0.0:
+		_fire_cd -= _delta
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	dir += TouchInput.move_vector
 	if dir.length() > 1.0:
@@ -42,15 +53,44 @@ func fire() -> void:
 	_attack()
 
 func _attack() -> void:
-	if ammo <= 0 or not bullet_scene:
+	if _fire_cd > 0.0:
+		return   # 统一冷却：键盘 echo / 触屏连点 / 自动连发都走这一个闸门
+	_fire_cd = fire_interval
+	if not infinite_ammo and ammo <= 0:
 		return
-	ammo -= 1
-	Juice.hitstop(0.06, 0.06)
-	var b: Area2D = bullet_scene.instantiate()
-	b.setup(_last_dir)
-	# 从身体边缘生成，避免卡在自身碰撞体里
-	b.global_position = global_position + _last_dir * 18.0
-	get_tree().current_scene.add_child(b)
+	# 开火不做 hitstop（会拖慢全局时间轴），只给轻微屏震做反馈
+	Juice.add_trauma(0.08)
+	Sfx.play("shoot")
+	# 对象池取子弹（§11.9），池缺失时退回 instantiate 兜底
+	var pool: Node = get_tree().get_first_node_in_group("bullet_pool")
+	# 多弹道散射：每发间开 0.16 弧度，奇数居中偶数对称
+	for i in projectile_count:
+		var dir: Vector2 = _last_dir.rotated((i - (projectile_count - 1) * 0.5) * 0.16)
+		var b: Area2D
+		if pool:
+			b = pool.acquire(get_tree().current_scene) as Area2D
+		else:
+			b = bullet_scene.instantiate()
+			get_tree().current_scene.add_child(b)
+		b.setup(dir, bullet_damage)
+		# 从身体边缘生成，避免卡在自身碰撞体里
+		b.global_position = global_position + dir * 18.0
+
+# 升级回调：按当前武器等级刷新数值
+func _on_weapon_leveled(_lv: int) -> void:
+	_apply_weapon_level()
+	Juice.add_trauma(0.2)
+
+func _apply_weapon_level() -> void:
+	var lv: int = GameState.weapon_level
+	bullet_damage = 12.0 * (1.0 + 0.45 * (lv - 1))
+	fire_interval = 0.22 * pow(0.88, lv - 1)
+	projectile_count = 1 + (1 if lv >= 3 else 0) + (1 if lv >= 6 else 0)
+
+func heal(amount: float) -> void:
+	if is_dead:
+		return
+	health = minf(health + amount, max_health)
 
 func take_damage(amount: float) -> void:
 	if is_dead:
@@ -58,6 +98,7 @@ func take_damage(amount: float) -> void:
 	health -= amount
 	Juice.add_trauma(0.3)
 	Juice.hitstop(0.04, 0.05)
+	Sfx.play("hurt")
 	EventBus.player_hit.emit(amount)
 	if health <= 0:
 		_die()

@@ -8,13 +8,11 @@ extends CanvasLayer
 @onready var attack_btn: Button = $AttackButton
 
 const JOY_RADIUS: float = 70.0
-const FIRE_INTERVAL: float = 0.22
 
 var _joy_active: bool = false
 var _joy_id: int = -2            # 触摸指针 index；鼠标用 -1
 var _joy_origin: Vector2 = Vector2.ZERO
 var _attack_held: bool = false
-var _fire_timer: float = 0.0
 
 func _ready() -> void:
 	joy_base.visible = false
@@ -24,7 +22,6 @@ func _ready() -> void:
 
 func _on_attack_down() -> void:
 	_attack_held = true
-	_fire_timer = 0.0
 	_fire()
 
 func _on_attack_up() -> void:
@@ -71,9 +68,7 @@ func _update_joy(pos: Vector2) -> void:
 	joy_knob.global_position = _joy_origin + delta
 	TouchInput.move_vector = delta / JOY_RADIUS
 
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
+	# 射速由 Player._attack 的统一冷却控制，这里每帧请求即可
 	if _attack_held:
-		_fire_timer -= delta
-		if _fire_timer <= 0.0:
-			_fire()
-			_fire_timer = FIRE_INTERVAL
+		_fire()

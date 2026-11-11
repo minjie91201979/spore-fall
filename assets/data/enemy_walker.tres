@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "漫游孢 Walker"
+hearing = 300.0
+move_speed = 90.0
+max_health = 40.0
+attack_power = 8.0
+alert_radius = 320.0
+behavior = "walk"
+tint = Color(1, 1, 1, 1)
+scale_mult = 1.0
+spawn_weight_tier0 = 1.0
+spawn_weight_per_tier = 0.0

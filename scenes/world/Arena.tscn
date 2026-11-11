@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/Arena.gd" id="1_arena"]
 [ext_resource type="Script" path="res://scripts/enemy/Spawner.gd" id="2_spawn"]
@@ -9,6 +9,11 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/GameOver.tscn" id="7_gameover"]
 [ext_resource type="Texture2D" path="res://assets/tiles/ground.png" id="8_ground"]
 [ext_resource type="PackedScene" path="res://scenes/ui/TouchControls.tscn" id="9_touch"]
+[ext_resource type="Script" path="res://scripts/systems/ObjectPool.gd" id="10_pool"]
+[ext_resource type="PackedScene" path="res://scenes/world/Bullet.tscn" id="11_bullet"]
+[ext_resource type="Resource" path="res://assets/data/enemy_walker.tres" id="12_walker"]
+[ext_resource type="Resource" path="res://assets/data/enemy_runner.tres" id="13_runner"]
+[ext_resource type="Resource" path="res://assets/data/enemy_brute.tres" id="14_brute"]
 
 [sub_resource type="NavigationPolygon" id="nav_poly"]
 vertices = PackedVector2Array(-900, -900, 310, -900, 310, 900, -900, 900, 450, -900, 900, -900, 900, 900, 450, 900, 310, -900, 450, -900, 450, -710, 310, -710, 310, -570, 450, -570, 450, 900, 310, 900)
@@ -34,6 +39,19 @@ groups=["player"]
 [node name="Spawner" type="Node2D" parent="."]
 script = ExtResource("2_spawn")
 enemy_scene = ExtResource("4_enemy")
+variants = Array[EnemyStats]([ExtResource("12_walker"), ExtResource("13_runner"), ExtResource("14_brute")])
+
+[node name="BulletPool" type="Node2D" parent="."]
+script = ExtResource("10_pool")
+pool_group = "bullet_pool"
+pooled_scene = ExtResource("11_bullet")
+prefill = 40
+
+[node name="EnemyPool" type="Node2D" parent="."]
+script = ExtResource("10_pool")
+pool_group = "enemy_pool"
+pooled_scene = ExtResource("4_enemy")
+prefill = 50
 
 [node name="Pillar" type="StaticBody2D" parent="."]
 position = Vector2(380, -640)
