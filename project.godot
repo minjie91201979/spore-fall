@@ -1,0 +1,28 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Spore Fall"
+config/description="2.5D top-down cartoon survival horror - vertical slice (Godot 4.7). 对应《孢城 SPORE FALL》立项方案 §11。"
+run/main_scene="res://scenes/world/Arena.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+GameState="*res://main.gd"
+EventBus="*res://core/EventBus.gd"
+Juice="*res://scripts/fx/Juice.gd"
+TouchInput="*res://scripts/ui/TouchInput.gd"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"

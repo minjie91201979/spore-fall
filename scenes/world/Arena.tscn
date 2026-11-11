@@ -1,0 +1,57 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/Arena.gd" id="1_arena"]
+[ext_resource type="Script" path="res://scripts/enemy/Spawner.gd" id="2_spawn"]
+[ext_resource type="PackedScene" path="res://scenes/world/Player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://scenes/world/Enemy.tscn" id="4_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/world/CameraShake.gd" id="6_shake"]
+[ext_resource type="PackedScene" path="res://scenes/ui/GameOver.tscn" id="7_gameover"]
+[ext_resource type="Texture2D" path="res://assets/tiles/ground.png" id="8_ground"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TouchControls.tscn" id="9_touch"]
+
+[sub_resource type="NavigationPolygon" id="nav_poly"]
+vertices = PackedVector2Array(-900, -900, 310, -900, 310, 900, -900, 900, 450, -900, 900, -900, 900, 900, 450, 900, 310, -900, 450, -900, 450, -710, 310, -710, 310, -570, 450, -570, 450, 900, 310, 900)
+polygons = [PackedInt32Array(0, 1, 2), PackedInt32Array(0, 2, 3), PackedInt32Array(4, 5, 6), PackedInt32Array(4, 6, 7), PackedInt32Array(8, 9, 10), PackedInt32Array(8, 10, 11), PackedInt32Array(12, 13, 14), PackedInt32Array(12, 14, 15)]
+
+[sub_resource type="RectangleShape2D" id="pillar_shape"]
+size = Vector2(140, 140)
+
+[node name="Arena" type="Node2D"]
+script = ExtResource("1_arena")
+ground_texture = ExtResource("8_ground")
+y_sort_enabled = true
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("nav_poly")
+
+[node name="Darkness" type="CanvasModulate" parent="."]
+color = Color(0.5, 0.55, 0.62, 1)
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+groups=["player"]
+
+[node name="Spawner" type="Node2D" parent="."]
+script = ExtResource("2_spawn")
+enemy_scene = ExtResource("4_enemy")
+
+[node name="Pillar" type="StaticBody2D" parent="."]
+position = Vector2(380, -640)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Pillar"]
+shape = SubResource("pillar_shape")
+
+[node name="Visual" type="Polygon2D" parent="Pillar"]
+polygon = PackedVector2Array(-70, -70, 70, -70, 70, 70, -70, 70)
+color = Color(0.28, 0.3, 0.36, 1)
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("6_shake")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UILayer" instance=ExtResource("5_hud")]
+
+[node name="GameOver" parent="UILayer" instance=ExtResource("7_gameover")]
+
+[node name="TouchControls" parent="." instance=ExtResource("9_touch")]

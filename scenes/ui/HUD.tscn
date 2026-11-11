@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/HUD.gd" id="1_hud"]
+
+[node name="HUD" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="DamageFlash" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+color = Color(0.9, 0.1, 0.1, 1)
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0)
+
+[node name="ScoreLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 30.0
+position = Vector2(20, 20)
+text = "SCORE 000000"
+
+[node name="ComboLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 30.0
+position = Vector2(20, 58)
+text = "COMBO x0"
+
+[node name="TimeLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 30.0
+position = Vector2(20, 96)
+text = "0.0"
+
+[node name="AmmoLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 30.0
+position = Vector2(20, 134)
+text = "AMMO 20"
