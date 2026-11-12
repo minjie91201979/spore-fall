@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/Arena.gd" id="1_arena"]
 [ext_resource type="Script" path="res://scripts/enemy/Spawner.gd" id="2_spawn"]
@@ -14,6 +14,8 @@
 [ext_resource type="Resource" path="res://assets/data/enemy_walker.tres" id="12_walker"]
 [ext_resource type="Resource" path="res://assets/data/enemy_runner.tres" id="13_runner"]
 [ext_resource type="Resource" path="res://assets/data/enemy_brute.tres" id="14_brute"]
+[ext_resource type="PackedScene" path="res://scenes/ui/BossBar.tscn" id="15_bossbar"]
+[ext_resource type="Resource" path="res://assets/data/enemy_boss.tres" id="16_boss"]
 
 [sub_resource type="NavigationPolygon" id="nav_poly"]
 vertices = PackedVector2Array(-900, -900, 310, -900, 310, 900, -900, 900, 450, -900, 900, -900, 900, 900, 450, 900, 310, -900, 450, -900, 450, -710, 310, -710, 310, -570, 450, -570, 450, 900, 310, 900)
@@ -40,6 +42,8 @@ groups=["player"]
 script = ExtResource("2_spawn")
 enemy_scene = ExtResource("4_enemy")
 variants = Array[EnemyStats]([ExtResource("12_walker"), ExtResource("13_runner"), ExtResource("14_brute")])
+boss_stats = ExtResource("16_boss")
+elite_times = Array[float]([180.0, 480.0, 900.0])
 
 [node name="BulletPool" type="Node2D" parent="."]
 script = ExtResource("10_pool")
@@ -69,6 +73,8 @@ script = ExtResource("6_shake")
 [node name="UILayer" type="CanvasLayer" parent="."]
 
 [node name="HUD" parent="UILayer" instance=ExtResource("5_hud")]
+
+[node name="BossBar" parent="UILayer" instance=ExtResource("15_bossbar")]
 
 [node name="GameOver" parent="UILayer" instance=ExtResource("7_gameover")]
 

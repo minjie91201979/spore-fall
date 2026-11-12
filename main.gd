@@ -20,6 +20,10 @@ var max_combo: int = 0
 var weapon_level: int = 1
 var crystals: int = 0
 
+# 精英/Boss 高潮点（§11.4.4）：同一时间只允许一只，存活期间暂停常规刷怪
+var boss_active: bool = false
+var bosses_spawned: int = 0
+
 # 难度抬档时间阈值（秒）—— 前 2 分宽松，之后每 2/4/8 分抬档（§11.4.4 / §6）
 const TIER_THRESHOLDS: Array = [0.0, 120.0, 240.0, 480.0]
 
@@ -64,10 +68,13 @@ func start_run() -> void:
 	difficulty_tier = 0
 	weapon_level = 1
 	crystals = 0
+	boss_active = false
+	bosses_spawned = 0
 	is_running = true
 
 func end_run() -> void:
 	is_running = false
+	boss_active = false
 	game_over.emit(score, survived_time)
 
 func register_kill(points: int = 10) -> void:

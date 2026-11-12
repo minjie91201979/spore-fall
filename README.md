@@ -45,9 +45,10 @@ spore-fall/
 | 难度随时间单调上升 | ✅ | `GameState` 计时 → 难度档 → `DifficultyCurve` 缩短刷怪间隔 |
 | 卡通描边 + 手电锥光 + 战争迷雾 | ✅ | `outline.gdshader` 就绪（需赋给 Sprite 材质）；`CanvasModulate` 黑暗已开；`PointLight2D` 手电已接 `GradientTexture2D` 径向柔光锥，跟随移动方向旋转（真扇形硬边遮罩待美术补 PNG） |
 | Juice 爽刷（≥3 项） | ✅ | hitstop + 屏幕震动 trauma + 连杀 combo（击杀粒子也已接） |
-| 死亡即结算 | ✅ | 玩家血量 + 敌人接触掉血；死亡触发 `GameState.end_run()` → `GameOver` 界面显示分数/存活时长 + 重开 |
-| 手机虚拟摇杆可跑 | 🟡 待接 | 移动已走 InputMap 统一动作，后续加 `VirtualJoystick` 节点映射同动作名即可 |
-| 同屏 100+ 60fps | 🟡 待优化 | 当前 instantiate 刷怪，对象池见 §11.9 后续 |
+| 死亡即结算 | ✅ | 玩家血量 + 敌人接触掉血；死亡触发 `GameState.end_run()` → 完整死亡演出（慢动作+镜头推近）→ `GameOver` 深色结算面板（分数/存活时长 + 重开/退出） |
+| 精英/Boss 高潮点（§11.4.4） | ✅ | 3/8/15 分召唤「母巢孢」：登场震屏+低频吼 + 顶部血条（`BossBar`）+ 蓄力冲锋（前摇变红可躲）+ 战斗期间暂停常规刷怪 + 击杀 600 分撒一圈晶体；每轮血量 ×(1+1.4n) 递增抵消武器成长 |
+| 手机虚拟摇杆可跑 | 🟡 待实机验证 | 虚拟摇杆 + FIRE 按钮已接 `TouchInput` 统一动作，需真机跑一局 |
+| 同屏 100+ 60fps | 🟡 待压测 | 对象池已接（敌人/子弹预实例化），待中端机实测帧率 |
 
 ## 切片范围（已做 / 未做）
 
@@ -61,7 +62,9 @@ spore-fall/
 3. **导航网格**：在 Arena 的 `NavigationRegion2D` 里绘制 `NavigationPolygon`，敌人即从「直接追」切到「避障寻路」。
 4. ~~**手电纹理**（已完成）：`Player.tscn` 的 `Flashlight` 节点已用 `PointLight2D` + `GradientTexture2D` 径向渐变做柔光锥，跟随移动方向旋转。真扇形硬边光锥待补一张锥光 PNG 遮罩（可后续用 agnes-image 生成）。~~
 5. **美术占位替换**：把 `assets/` 的精灵接进 Player/Enemy 的 Sprite2D，并挂 `outline.gdshader` 材质。
-6. **手机端**：加虚拟摇杆节点，映射 `move_left/right/up/down` 与 `attack`。
-7. **对象池**：把 Spawner 的 instantiate 换成预实例化池（§11.9）。
+6. **手机端**：虚拟摇杆已接，待真机验证一局完整流程。
+7. ~~**对象池**（已完成）：Spawner/Bullet 全走 `ObjectPool` 预实例化池（§11.9），停车场复位防残余碰撞。~~
+8. **画质档位（§11.6）**：描边开关、光源上限、雾分辨率、粒子上限，低端机降级保 60fps。
+9. **性能压测（§11.7）**：同屏 100+ 敌人帧率实测与调优。
 
 > 引擎已定 Godot 4（§5.3 / §11），开源免费、2D 管线成熟。本工程用 GL Compatibility 渲染后端，兼容性与低端机更稳。
