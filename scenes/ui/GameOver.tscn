@@ -1,10 +1,80 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/GameOver.gd" id="1_gameover"]
+
+[sub_resource type="StyleBoxFlat" id="panel_style"]
+bg_color = Color(0.0431373, 0.0588235, 0.0745098, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.156863, 0.85098, 0.8, 0.75)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0, 0, 0, 0.45)
+shadow_size = 24
+
+[sub_resource type="StyleBoxFlat" id="btn_primary"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.0901961, 0.717647, 0.686275, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="btn_primary_hover"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.129412, 0.85098, 0.807843, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="btn_ghost"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.117647, 0.137255, 0.168627, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.247059, 0.321569, 0.360784, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="btn_ghost_hover"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.168627, 0.2, 0.239216, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.298039, 0.4, 0.443137, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 
 [node name="GameOver" type="Control"]
 layout_mode = 3
 anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 mouse_filter = 0
 script = ExtResource("1_gameover")
 visible = false
@@ -12,9 +82,9 @@ visible = false
 [node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
-offset_right = 0.0
-offset_bottom = 0.0
-color = Color(0, 0, 0, 0.6)
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.72)
 mouse_filter = 2
 
 [node name="Panel" type="PanelContainer" parent="."]
@@ -24,47 +94,90 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -160.0
-offset_right = 200.0
-offset_bottom = 160.0
+offset_left = -230.0
+offset_top = -190.0
+offset_right = 230.0
+offset_bottom = 190.0
+theme_override_styles/panel = SubResource("panel_style")
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
+alignment = 1
 
 [node name="Title" type="Label" parent="Panel/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.95, 0.9, 1)
+theme_override_font_sizes/font_size = 32
 text = "你 倒 下 了"
 horizontal_alignment = 1
 
+[node name="Divider" type="HSeparator" parent="Panel/VBox"]
+layout_mode = 2
+
 [node name="ScoreLabel" type="Label" parent="Panel/VBox"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 20
 text = "SCORE 000000"
 horizontal_alignment = 1
 
 [node name="TimeLabel" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-text = "存活 0:00"
+theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 19
+text = "存活时间  0:00"
 horizontal_alignment = 1
 
 [node name="KillLabel" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-text = "击杀 0"
+theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 19
+text = "击杀数  0"
 horizontal_alignment = 1
 
 [node name="ComboLabel" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-text = "最高连杀 0"
+theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 19
+text = "最高连杀  0"
 horizontal_alignment = 1
 
 [node name="WeaponLabel" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-text = "武器 LV1"
+theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 19
+text = "武器等级  LV1"
 horizontal_alignment = 1
 
-[node name="RestartButton" type="Button" parent="Panel/VBox"]
+[node name="Spacer" type="Control" parent="Panel/VBox"]
+custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="RestartButton" type="Button" parent="Panel/VBox/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.02, 0.08, 0.09, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("btn_primary")
+theme_override_styles/hover = SubResource("btn_primary_hover")
+theme_override_styles/pressed = SubResource("btn_primary_hover")
 text = "重新开始"
 
-[connection signal="pressed" from="Panel/VBox/RestartButton" to="." method="_on_restart_pressed"]
+[node name="QuitButton" type="Button" parent="Panel/VBox/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.75, 0.85, 0.85, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("btn_ghost")
+theme_override_styles/hover = SubResource("btn_ghost_hover")
+theme_override_styles/pressed = SubResource("btn_ghost_hover")
+text = "退出游戏"
+
+[connection signal="pressed" from="Panel/VBox/Buttons/RestartButton" to="." method="_on_restart_pressed"]
+[connection signal="pressed" from="Panel/VBox/Buttons/QuitButton" to="." method="_on_quit_pressed"]

@@ -38,13 +38,14 @@ func _ready() -> void:
 	_bgm.volume_db = -14.0
 	_bgm.finished.connect(_on_bgm_finished)
 
-func play(name: String) -> void:
-	if not STREAMS.has(name):
+func play(sound_name: String, pitch: float = 1.0, volume_offset: float = 0.0) -> void:
+	if not STREAMS.has(sound_name):
 		return
 	var p := _voices[_next_voice]
 	_next_voice = (_next_voice + 1) % VOICES
-	p.stream = STREAMS[name]
-	p.volume_db = VOLUMES.get(name, -8.0)
+	p.stream = STREAMS[sound_name]
+	p.volume_db = VOLUMES.get(sound_name, -8.0) + volume_offset
+	p.pitch_scale = pitch
 	p.play()
 
 func start_bgm() -> void:

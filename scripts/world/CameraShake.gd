@@ -6,11 +6,17 @@ extends Camera2D
 @export var max_roll: float = 0.05
 @export var follow_smoothing: float = 0.15
 
+# 相机可视半宽/半高（按 1152x648 设计分辨率），用于把镜头夹在场地内
+const CAM_LIMIT := Vector2(324.0, 576.0)
+
 func _process(_delta: float) -> void:
 	# 相机跟随玩家（PC/移动端通用，避免角色跑出屏幕）
 	var player = get_tree().get_first_node_in_group("player")
 	if player and is_instance_valid(player):
 		global_position = global_position.lerp(player.global_position, follow_smoothing)
+	# 夹在竞技场内，避免露出地面外的灰色 clear color
+	global_position.x = clampf(global_position.x, -CAM_LIMIT.x, CAM_LIMIT.x)
+	global_position.y = clampf(global_position.y, -CAM_LIMIT.y, CAM_LIMIT.y)
 
 	# 命中/击杀 trauma 平方后映射到位移与旋转
 	var shake := Juice.trauma * Juice.trauma

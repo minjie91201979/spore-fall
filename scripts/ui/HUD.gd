@@ -10,6 +10,15 @@ extends Control
 func _ready() -> void:
 	EventBus.player_hit.connect(_on_player_hit)
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
+	GameState.game_over.connect(_on_game_over)
+
+func _on_game_over(_score: int, _time: float) -> void:
+	# 死亡时让 HUD 淡出，给结算层让位
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_property(self, "modulate:a", 0.0, 0.25)
+	await get_tree().create_timer(0.3, true, false, true).timeout
+	hide()
 
 func _on_player_hit(_dmg: int) -> void:
 	# 受击红屏脉冲（§7）

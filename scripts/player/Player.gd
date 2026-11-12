@@ -39,6 +39,9 @@ func _physics_process(_delta: float) -> void:
 		_last_dir = dir.normalized()
 		flashlight.rotation = dir.angle()
 	move_and_slide()
+	# 限制在竞技场范围内，避免走出地面看到灰色虚空
+	global_position.x = clampf(global_position.x, -880.0, 880.0)
+	global_position.y = clampf(global_position.y, -880.0, 880.0)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_dead:
@@ -97,14 +100,30 @@ func take_damage(amount: float) -> void:
 		return
 	health -= amount
 	Juice.add_trauma(0.3)
-	Juice.hitstop(0.04, 0.05)
 	Sfx.play("hurt")
 	EventBus.player_hit.emit(amount)
 	if health <= 0:
 		_die()
+	else:
+		Juice.hitstop(0.04, 0.05)
 
 func _die() -> void:
+	if is_dead:
+		return
 	is_dead = true
 	GameState.end_run()
 	set_physics_process(false)
+	# 死亡演出：慢动作 + 镜头推近 + 玩家淡出（tween 用真实时间，不受 time_scale 影响）
+	Engine.time_scale = 0.28
+	Sfx.play("hurt", 0.62, 2.0)
+	Juice.add_trauma(0.65)
+	var cam := get_viewport().get_camera_2d()
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.set_parallel(true)
+	tw.tween_property(self, "modulate:a", 0.0, 0.62).set_ease(Tween.EASE_OUT)
+	if cam:
+		tw.tween_property(cam, "zoom", Vector2(1.14, 1.14), 0.62).set_ease(Tween.EASE_OUT)
+	await get_tree().create_timer(0.68, true, false, true).timeout
+	Engine.time_scale = 1.0
 	visible = false
