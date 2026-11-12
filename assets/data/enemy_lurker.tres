@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "潜伏孢 Lurker"
+hearing = 200.0
+move_speed = 175.0
+max_health = 30.0
+attack_power = 11.0
+alert_radius = 340.0
+behavior = "ambush"
+tint = Color(0.52, 0.27, 0.68, 1)
+scale_mult = 0.95
+spawn_weight_tier0 = 0.2
+spawn_weight_per_tier = 0.12
+contact_radius = 26.0

@@ -31,6 +31,12 @@ var _charge_dir: Vector2 = Vector2.RIGHT
 var _steer_t: float = 0.0
 var _steer_dir: Vector2 = Vector2.ZERO
 
+# 伏击状态机（§11.5 伏击体）：0 = 无伏击/已进入追击，1 = 潜伏（半埋半透明、静止），
+# 2 = 破土前摇。潜伏中不吃接触伤害，玩家进入警觉半径才炸出来高速追击。
+var _ambush_state: int = 0
+var _ambush_t: float = 0.0
+var _base_scale: Vector2 = Vector2.ONE * 0.095
+
 func _ready() -> void:
 	add_to_group("enemy")
 	if stats:
@@ -57,6 +63,7 @@ func reset_for_reuse() -> void:
 	_steer_t = 0.0
 	_steer_dir = Vector2.ZERO
 	_base_tint = stats.tint if stats else Color.WHITE
+	_setup_ambush(stats != null and not stats.is_boss and stats.behavior == "ambush")
 	_apply_visual()
 
 # 刷怪器选种后调用：设定变种参数并按数据应用视觉（染色/体型）
@@ -75,10 +82,22 @@ func configure(s: EnemyStats, hp_mult: float = 1.0) -> void:
 	_steer_dir = Vector2.ZERO
 	_base_tint = s.tint
 	_apply_visual()
+	_setup_ambush(not s.is_boss and s.behavior == "ambush")
 	if is_boss:
 		add_to_group("boss")
 	else:
 		remove_from_group("boss")   # 池化复用：Boss 退回杂兵时清掉分组
+
+# 潜伏/常规初始化（伏击体半埋，其余满状态登场）
+func _setup_ambush(enabled: bool) -> void:
+	if enabled:
+		_ambush_state = 1
+		_ambush_t = 0.0
+		modulate.a = 0.45
+	else:
+		_ambush_state = 0
+		_ambush_t = 0.0
+		modulate.a = 1.0
 
 func _apply_visual() -> void:
 	var spr: Sprite2D = $Sprite
@@ -88,6 +107,7 @@ func _apply_visual() -> void:
 	else:
 		spr.modulate = Color(1, 1, 1, 1)
 		spr.scale = Vector2.ONE * 0.095
+	_base_scale = spr.scale
 	# 描边层必须跟着体型缩放，否则大块头会露出「一圈看不见的边」
 	if is_instance_valid(outline):
 		outline.scale = spr.scale
@@ -112,6 +132,30 @@ func _physics_process(delta: float) -> void:
 	var speed: float = stats.move_speed if stats else 90.0
 	var to_player: Vector2 = _player.global_position - global_position
 	var dir: Vector2 = to_player.normalized()
+
+	# 伏击体状态机：潜伏（静止、不吃伤害）→ 破土前摇 → 并入常规追击
+	if _ambush_state == 1:
+		velocity = Vector2.ZERO
+		var alert: float = stats.alert_radius if stats else 320.0
+		if to_player.length() < alert:
+			_ambush_state = 2
+			_ambush_t = 0.35
+			Sfx.play("hit", 0.6, 2.0)
+			Juice.add_trauma(0.12)
+			_flash_tint(Color(1.0, 0.5, 0.5), 0.12)
+		move_and_slide()
+		return
+	elif _ambush_state == 2:
+		velocity = Vector2.ZERO
+		_ambush_t -= delta
+		if _ambush_t <= 0.0:
+			_ambush_state = 0
+			modulate.a = 1.0
+			_restore_tint()
+			_emerge_pop()
+		move_and_slide()
+		return
+
 	if is_boss:
 		_boss_update(delta, speed, dir)
 	elif to_player.length() < 140.0:
@@ -134,6 +178,24 @@ func _physics_process(delta: float) -> void:
 		if is_boss and _charge_state == 2:
 			dmg *= 1.6
 		_player.take_damage(dmg)
+
+# 破土弹跳：本体与描边层一起放大再回落（只动 Sprite，不碰物理碰撞体的 scale）
+func _emerge_pop() -> void:
+	var spr: Sprite2D = $Sprite
+	var popped: Vector2 = _base_scale * 1.22
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_property(spr, "scale", popped, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var back := create_tween()
+	back.set_ignore_time_scale(true)
+	back.tween_property(spr, "scale", _base_scale, 0.14).set_delay(0.08)
+	if is_instance_valid(outline):
+		var t2 := create_tween()
+		t2.set_ignore_time_scale(true)
+		t2.tween_property(outline, "scale", popped, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var b2 := create_tween()
+		b2.set_ignore_time_scale(true)
+		b2.tween_property(outline, "scale", _base_scale, 0.14).set_delay(0.08)
 
 # Boss 专用移动：常规追击 → 蓄力前摇（站桩+变色+低频吼）→ 高速突进 → 冷却。
 # 前摇 0.55s 是「可躲窗口」：玩家 220px/s 能在突进路径上侧移出判定圈。
