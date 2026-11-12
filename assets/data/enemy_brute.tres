@@ -7,7 +7,7 @@
 script = ExtResource("1_stats")
 display_name = "肿胀孢 Brute"
 hearing = 260.0
-move_speed = 55.0
+move_speed = 44.0
 max_health = 120.0
 attack_power = 15.0
 alert_radius = 300.0

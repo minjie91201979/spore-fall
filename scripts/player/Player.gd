@@ -68,11 +68,18 @@ func _attack() -> void:
 	# 开火不做 hitstop（会拖慢全局时间轴），只给轻微屏震做反馈
 	Juice.add_trauma(0.08)
 	Sfx.play("shoot")
+	# 瞄准方向：自动锁最近敌人（摇杆/键盘只管走位），无目标才退回最后移动方向。
+	# 这样手机上不必「为了打左边而往左走」，走位与瞄准彻底解耦。
+	var aim_base: Vector2 = _last_dir
+	if TouchInput.auto_aim:
+		var auto_dir := _auto_aim_dir()
+		if auto_dir != Vector2.ZERO:
+			aim_base = auto_dir
 	# 对象池取子弹（§11.9），池缺失时退回 instantiate 兜底
 	var pool: Node = get_tree().get_first_node_in_group("bullet_pool")
 	# 多弹道散射：每发间开 0.16 弧度，奇数居中偶数对称
 	for i in projectile_count:
-		var dir: Vector2 = _last_dir.rotated((i - (projectile_count - 1) * 0.5) * 0.16)
+		var dir: Vector2 = aim_base.rotated((i - (projectile_count - 1) * 0.5) * 0.16)
 		var b: Area2D
 		if pool:
 			b = pool.acquire(get_tree().current_scene) as Area2D
@@ -82,6 +89,30 @@ func _attack() -> void:
 		b.setup(dir, bullet_damage)
 		# 从身体边缘生成，避免卡在自身碰撞体里
 		b.global_position = global_position + dir * 18.0
+
+# 自动瞄准：射程内最近的活敌；跑动时朝移动方向的敌人有 30% 加权优势
+# （突围时优先清前方，站定时纯最近）。每次开火遍历一次，200 敌同屏也无压力。
+const AIM_RANGE := 560.0
+
+func _auto_aim_dir() -> Vector2:
+	var best: Node2D = null
+	var best_score := INF
+	var hint: Vector2 = TouchInput.move_vector
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if not e is Node2D or e.get("active") != true:
+			continue
+		var to_e: Vector2 = e.global_position - global_position
+		var d: float = to_e.length()
+		if d > AIM_RANGE or d < 1.0:
+			continue
+		var bias: float = 1.0 - 0.3 * maxf(0.0, to_e.normalized().dot(hint))
+		var score: float = d * bias
+		if score < best_score:
+			best_score = score
+			best = e
+	if best == null:
+		return Vector2.ZERO
+	return (best.global_position - global_position).normalized()
 
 # 升级回调：按当前武器等级刷新数值
 func _on_weapon_leveled(_lv: int) -> void:

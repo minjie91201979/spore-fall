@@ -7,7 +7,7 @@
 script = ExtResource("1_stats")
 display_name = "母巢孢 · Brood Mother"
 hearing = 900.0
-move_speed = 62.0
+move_speed = 50.0
 max_health = 3000.0
 attack_power = 20.0
 alert_radius = 900.0
@@ -22,4 +22,4 @@ is_boss = true
 score_value = 600
 contact_radius = 52.0
 charge_interval = 3.2
-charge_speed = 4.0
+charge_speed = 5.0

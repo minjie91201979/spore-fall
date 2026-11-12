@@ -7,7 +7,7 @@
 script = ExtResource("1_stats")
 display_name = "潜伏孢 Lurker"
 hearing = 200.0
-move_speed = 175.0
+move_speed = 140.0
 max_health = 30.0
 attack_power = 11.0
 alert_radius = 340.0

@@ -7,7 +7,7 @@
 script = ExtResource("1_stats")
 display_name = "疾走孢 Runner"
 hearing = 380.0
-move_speed = 155.0
+move_speed = 124.0
 max_health = 22.0
 attack_power = 6.0
 alert_radius = 420.0
