@@ -14,6 +14,8 @@ extends Node2D
 @export var elite_times: Array[float] = [180.0, 480.0, 900.0]
 # 每多召唤一轮，血量按该系数递增（抵消玩家武器成长，避免后期秒杀）
 @export var boss_hp_growth: float = 1.4
+# 同屏存活上限（§11.9）：玩家一直跑不打时也不让敌人无限堆积，保住帧率底线
+@export var max_alive: int = 150
 
 var _spawn_timer: float = 0.0
 var _elite_index: int = 0
@@ -73,6 +75,9 @@ func _interval() -> float:
 	return DifficultyCurve.spawn_rate_for_tier(GameState.difficulty_tier)
 
 func _spawn_one() -> void:
+	# 封顶：只数存活中的（池里停车的不算），到上限就跳过本次刷怪
+	if _alive_count() >= max_alive:
+		return
 	var e: Node2D = _acquire_enemy()
 	if e == null:
 		return
@@ -83,6 +88,13 @@ func _spawn_one() -> void:
 	var angle: float = randf() * TAU
 	var r: float = randf_range(spawn_radius_min, spawn_radius_max)
 	e.global_position = _player.global_position + Vector2(cos(angle), sin(angle)) * r
+
+func _alive_count() -> int:
+	var n := 0
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e.get("active"):
+			n += 1
+	return n
 
 func _pick_variant() -> EnemyStats:
 	if variants.is_empty():

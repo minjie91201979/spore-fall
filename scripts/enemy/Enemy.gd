@@ -26,6 +26,10 @@ var _charge_state: int = 0
 var _charge_t: float = 0.0
 var _charge_cd: float = 3.4
 var _charge_dir: Vector2 = Vector2.RIGHT
+# 避障射线节流（§11.7 压测优化）：近距离直接贴脸不打射线；远距离 0.12s 缓存一次，
+# 200 只同屏时射线调用量从 12000/s 降到约 1600/s。
+var _steer_t: float = 0.0
+var _steer_dir: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	add_to_group("enemy")
@@ -50,6 +54,8 @@ func reset_for_reuse() -> void:
 	_charge_state = 0
 	_charge_t = 0.0
 	_charge_cd = stats.charge_interval if stats else 3.4
+	_steer_t = 0.0
+	_steer_dir = Vector2.ZERO
 	_base_tint = stats.tint if stats else Color.WHITE
 	_apply_visual()
 
@@ -65,6 +71,8 @@ func configure(s: EnemyStats, hp_mult: float = 1.0) -> void:
 	_charge_state = 0
 	_charge_t = 0.0
 	_charge_cd = s.charge_interval
+	_steer_t = 0.0
+	_steer_dir = Vector2.ZERO
 	_base_tint = s.tint
 	_apply_visual()
 	if is_boss:
@@ -102,12 +110,20 @@ func _physics_process(delta: float) -> void:
 		_contact_cooldown -= delta
 
 	var speed: float = stats.move_speed if stats else 90.0
-	var dir: Vector2 = (_player.global_position - global_position).normalized()
+	var to_player: Vector2 = _player.global_position - global_position
+	var dir: Vector2 = to_player.normalized()
 	if is_boss:
 		_boss_update(delta, speed, dir)
+	elif to_player.length() < 140.0:
+		# 贴身阶段直接朝玩家推：省掉射线，也避免在玩家身边绕圈打转
+		velocity = dir * speed
 	else:
-		# 轻量避障：直线方向前方有障碍柱时切向绕行（无导航网格方案）
-		velocity = _steer_around_obstacles(dir) * speed
+		# 轻量避障：直线方向前方有障碍柱时切向绕行（无导航网格方案），节流缓存
+		_steer_t -= delta
+		if _steer_t <= 0.0:
+			_steer_t = 0.12
+			_steer_dir = _steer_around_obstacles(dir)
+		velocity = _steer_dir * speed
 	move_and_slide()
 
 	# 接触掉血（§11.4.3）：贴近玩家且冷却结束才扣一次；冲锋命中额外加成
