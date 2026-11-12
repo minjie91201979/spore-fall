@@ -294,6 +294,10 @@ func _deferred_die() -> void:
 	var blood: Color = _blood_color()
 	BloodPool.spawn(get_tree().current_scene, global_position, blood,
 		stats.scale_mult if stats else 1.0)
+	# 被打爆演出：本体立即回池，视觉替身留原地（闪白膨胀 → 贴图碎片+脓滴四散 → 淡出）
+	var spr: Sprite2D = $Sprite
+	DeathBurst.spawn(get_tree().current_scene, global_position, spr.texture,
+		_base_tint, blood, spr.scale.x, stats.scale_mult if stats else 1.0)
 	# 击杀爆裂粒子：复制一份留在原地播完（本体带原粒子节点回池）
 	# Boss 放三重爆裂并放大尺寸，做成「高潮收尾」的视觉标点
 	var bursts: int = 3 if is_boss else 1
