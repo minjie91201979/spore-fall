@@ -163,3 +163,9 @@ spore-fall/
 > ⚠️ 手机真机（arm64 APK）尚未实测；若中低端机掉帧，优先切「画质 低」（粒子 0.35 / 无描边 / 光半径 3.6）。
 
 > 引擎已定 Godot 4（§5.3 / §11），开源免费、2D 管线成熟。本工程用 GL Compatibility 渲染后端，兼容性与低端机更稳。
+
+## 导出与交付
+
+- Windows：`Godot --headless --path . --export-release "Windows Desktop"` → `build/SporeFall.exe`
+- Android：`Godot --headless --path . --export-debug "Android"` → `build/SporeFall-0.1.0.apk`（真机可安装的 debug 签名；`--export-release` 需要先配 release keystore）
+- 两个 preset 都设了 `exclude_filter="build/*, tests/*"`：验证截图、AI 原图与探针脚本不进包，EXE 约 109MB / APK 约 32MB，比全量导出各小约 10MB。`build/` 本身被 `.gitignore` 排除，包与截图只作本地交付。
