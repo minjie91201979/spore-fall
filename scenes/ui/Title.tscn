@@ -1,0 +1,266 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/Title.gd" id="1_title"]
+[ext_resource type="Script" path="res://scripts/ui/SporeField.gd" id="2_spores"]
+
+[sub_resource type="Gradient" id="glow_grad"]
+offsets = PackedFloat32Array(0, 0.55, 1)
+colors = PackedColorArray(0.176471, 0.898039, 0.839216, 0.2, 0.0862745, 0.407843, 0.4, 0.07, 0.0235294, 0.0392157, 0.0509804, 0)
+
+[sub_resource type="GradientTexture2D" id="glow_tex"]
+gradient = SubResource("glow_grad")
+width = 512
+height = 512
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="StyleBoxFlat" id="btn_primary"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.156863, 0.85098, 0.8, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0.156863, 0.85098, 0.8, 0.28)
+shadow_size = 16
+
+[sub_resource type="StyleBoxFlat" id="btn_primary_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.247059, 0.92549, 0.87451, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0.156863, 0.85098, 0.8, 0.45)
+shadow_size = 22
+
+[sub_resource type="StyleBoxFlat" id="btn_primary_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.117647, 0.705882, 0.666667, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="btn_ghost"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.054902, 0.0823529, 0.101961, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.180392, 0.266667, 0.301961, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="btn_ghost_hover"]
+content_margin_left = 18.0
+content_margin_top = 10.0
+content_margin_right = 18.0
+content_margin_bottom = 10.0
+bg_color = Color(0.101961, 0.152941, 0.180392, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.294118, 0.415686, 0.454902, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="Title" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_title")
+
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.0235294, 0.0392157, 0.0509804, 1)
+
+[node name="Glow" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -560.0
+offset_top = -400.0
+offset_right = 560.0
+offset_bottom = 400.0
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0.9)
+texture = SubResource("glow_tex")
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Spores" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("2_spores")
+
+[node name="Center" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -215.0
+offset_top = -232.0
+offset_right = 215.0
+offset_bottom = 232.0
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="Kicker" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.298039, 0.686275, 0.678431, 0.9)
+theme_override_font_sizes/font_size = 12
+text = "无 尽 生 存 · E N D L E S S"
+horizontal_alignment = 1
+
+[node name="TitleCN" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.156863, 0.85098, 0.8, 1)
+theme_override_colors/font_outline_color = Color(0.0117647, 0.0313725, 0.0392157, 0.85)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 60
+text = "孢　城"
+horizontal_alignment = 1
+
+[node name="TitleEN" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.623529, 0.85098, 0.831373, 0.85)
+theme_override_font_sizes/font_size = 18
+text = "S P O R E   F A L L"
+horizontal_alignment = 1
+
+[node name="BestLabel" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.494118, 0.603922, 0.631373, 1)
+theme_override_font_sizes/font_size = 14
+text = "最高分　000000"
+horizontal_alignment = 1
+
+[node name="Divider" type="ColorRect" parent="Center"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.156863, 0.85098, 0.8, 0.35)
+
+[node name="Tagline" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72549, 0.796078, 0.811765, 1)
+theme_override_font_sizes/font_size = 15
+text = "在被孢子吞没的城市里，活到最后一刻"
+horizontal_alignment = 1
+
+[node name="Sep" type="Control" parent="Center"]
+custom_minimum_size = Vector2(0, 14)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="StartButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.0196078, 0.0784314, 0.0862745, 1)
+theme_override_colors/font_hover_color = Color(0.0117647, 0.0588235, 0.0666667, 1)
+theme_override_colors/font_pressed_color = Color(0.0117647, 0.0588235, 0.0666667, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("btn_primary")
+theme_override_styles/hover = SubResource("btn_primary_hover")
+theme_override_styles/pressed = SubResource("btn_primary_pressed")
+text = "开 始 游 戏"
+
+[node name="QualityButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(260, 42)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.792157, 0.87451, 0.882353, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("btn_ghost")
+theme_override_styles/hover = SubResource("btn_ghost_hover")
+theme_override_styles/pressed = SubResource("btn_ghost_hover")
+text = "画质　高"
+
+[node name="QuitButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(260, 42)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_override_colors/font_color = Color(0.607843, 0.713725, 0.72549, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 15
+theme_override_styles/normal = SubResource("btn_ghost")
+theme_override_styles/hover = SubResource("btn_ghost_hover")
+theme_override_styles/pressed = SubResource("btn_ghost_hover")
+text = "退　出"
+
+[node name="Hints" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="PcHint" type="Label" parent="Hints"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -52.0
+offset_bottom = -30.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.360784, 0.458824, 0.482353, 1)
+theme_override_font_sizes/font_size = 12
+text = "WASD / 方向键 移动　·　空格 开火"
+horizontal_alignment = 1
+
+[node name="TouchHint" type="Label" parent="Hints"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -78.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.360784, 0.458824, 0.482353, 1)
+theme_override_font_sizes/font_size = 12
+text = "左半屏拖动移动　·　右下 FIRE 开火"
+horizontal_alignment = 1

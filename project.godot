@@ -12,7 +12,7 @@ config_version=5
 
 config/name="Spore Fall"
 config/description="2.5D top-down cartoon survival horror - vertical slice (Godot 4.7). 对应《孢城 SPORE FALL》立项方案 §11。"
-run/main_scene="res://scenes/world/Arena.tscn"
+run/main_scene="res://scenes/ui/Title.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

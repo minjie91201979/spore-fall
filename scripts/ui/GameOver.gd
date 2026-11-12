@@ -2,6 +2,7 @@ extends Control
 # 死亡结算界面（§11.4.6 / DoD「死亡即终局」）。
 # 监听 GameState.game_over，等死亡演出播完后淡入，显示战绩并提供重开/退出。
 
+@onready var title_label: Label = $Panel/VBox/Title
 @onready var score_label: Label = $Panel/VBox/ScoreLabel
 @onready var time_label: Label = $Panel/VBox/TimeLabel
 @onready var kill_label: Label = $Panel/VBox/KillLabel
@@ -13,6 +14,11 @@ func _ready() -> void:
 	GameState.game_over.connect(_on_game_over)
 
 func _on_game_over(final_score: int, survived_time: float) -> void:
+	# end_run 已先写入 best_score，故「本局分 == 最高分」即破纪录
+	var is_record: bool = final_score > 0 and final_score >= GameState.best_score
+	title_label.text = "新 纪 录" if is_record else "你 倒 下 了"
+	title_label.add_theme_color_override("font_color",
+		Color(1.0, 0.84, 0.35) if is_record else Color(0.2, 0.95, 0.9))
 	score_label.text = "SCORE %06d" % final_score
 	var mins := floori(survived_time / 60.0)
 	var secs := int(survived_time) % 60
@@ -33,6 +39,9 @@ func _on_game_over(final_score: int, survived_time: float) -> void:
 func _on_restart_pressed() -> void:
 	# Arena._ready 重载后会重新 start_run()
 	get_tree().reload_current_scene()
+
+func _on_title_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/Title.tscn")
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

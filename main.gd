@@ -24,11 +24,16 @@ var crystals: int = 0
 var boss_active: bool = false
 var bosses_spawned: int = 0
 
+# 本地最高分（标题页展示 / 结算页判定新纪录）
+const SAVE_PATH := "user://save.cfg"
+var best_score: int = 0
+
 # 难度抬档时间阈值（秒）—— 前 2 分宽松，之后每 2/4/8 分抬档（§11.4.4 / §6）
 const TIER_THRESHOLDS: Array = [0.0, 120.0, 240.0, 480.0]
 
 func _ready() -> void:
 	_register_input()
+	_load_best()
 
 # ---------- 输入注册（代码方式，等价于 project.godot [input]） ----------
 func _register_input() -> void:
@@ -75,7 +80,23 @@ func start_run() -> void:
 func end_run() -> void:
 	is_running = false
 	boss_active = false
+	# 破纪录先落盘，再广播：结算页据此判断要不要打「新纪录」
+	if score > best_score:
+		best_score = score
+		_save_best()
 	game_over.emit(score, survived_time)
+
+# ---------- 本地最高分 ----------
+func _load_best() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVE_PATH) == OK:
+		best_score = int(cfg.get_value("record", "best_score", 0))
+
+func _save_best() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(SAVE_PATH)   # 保留其它字段，读不到就用空配置
+	cfg.set_value("record", "best_score", best_score)
+	cfg.save(SAVE_PATH)
 
 func register_kill(points: int = 10) -> void:
 	kill_count += 1
