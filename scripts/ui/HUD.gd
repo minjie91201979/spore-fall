@@ -7,10 +7,13 @@ extends Control
 @onready var weapon_label: Label = $WeaponLabel
 @onready var damage_flash: ColorRect = $DamageFlash
 @onready var quality_button: Button = $QualityButton
+@onready var toast_label: Label = $ToastLabel
+var _toast_tw: Tween
 
 func _ready() -> void:
 	EventBus.player_hit.connect(_on_player_hit)
 	EventBus.quality_changed.connect(_on_quality_changed)
+	EventBus.achievement_unlocked.connect(_on_achievement)
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
 	GameState.game_over.connect(_on_game_over)
 	quality_button.pressed.connect(_on_quality_pressed)
@@ -38,6 +41,18 @@ func _on_player_hit(_dmg: int) -> void:
 	damage_flash.modulate.a = 0.5
 	var t := create_tween()
 	t.tween_property(damage_flash, "modulate:a", 0.0, 0.35)
+
+# 成就解锁 toast：固定绝对定位，不 push 任何布局；后来的解锁直接接管同一条时间轴
+func _on_achievement(name: String) -> void:
+	if _toast_tw and _toast_tw.is_valid():
+		_toast_tw.kill()
+	toast_label.text = "★ 成就解锁　" + name
+	toast_label.modulate.a = 0.0
+	_toast_tw = create_tween()
+	_toast_tw.set_ignore_time_scale(true)
+	_toast_tw.tween_property(toast_label, "modulate:a", 1.0, 0.18)
+	_toast_tw.tween_interval(2.2)
+	_toast_tw.tween_property(toast_label, "modulate:a", 0.0, 0.45)
 
 func _on_weapon_leveled(_lv: int) -> void:
 	# 升级金色脉冲

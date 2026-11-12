@@ -12,3 +12,6 @@ signal boss_defeated(display_name: String)
 
 # 画质档位切换（§11.6）：HUD 按钮文案等 UI 跟随刷新
 signal quality_changed(level: int)
+
+# 生涯成就解锁（§11.8）：局内实时广播，HUD 用 toast 提示
+signal achievement_unlocked(display_name: String)

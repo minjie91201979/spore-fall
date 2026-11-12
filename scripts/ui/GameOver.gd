@@ -8,6 +8,8 @@ extends Control
 @onready var kill_label: Label = $Panel/VBox/KillLabel
 @onready var combo_label: Label = $Panel/VBox/ComboLabel
 @onready var weapon_label: Label = $Panel/VBox/WeaponLabel
+@onready var career_label: Label = $Panel/VBox/CareerLabel
+@onready var achievement_label: Label = $Panel/VBox/AchievementLabel
 
 func _ready() -> void:
 	hide()
@@ -26,12 +28,21 @@ func _on_game_over(final_score: int, survived_time: float) -> void:
 	kill_label.text = "击杀数  %d" % GameState.kill_count
 	combo_label.text = "最高连杀  %d" % GameState.max_combo
 	weapon_label.text = "武器等级  LV%d" % GameState.weapon_level
+	career_label.text = Career.summary()
+	var new_ach: String = Career.achievement_line()
+	achievement_label.text = new_ach
+	achievement_label.visible = new_ach != ""
 	# 等慢动作/淡出演出结束再弹结算；ignore_time_scale 保证计时真实
 	await get_tree().create_timer(0.75, true, false, true).timeout
 	if not is_inside_tree():
 		return
 	modulate.a = 0.0
 	show()
+	# 触屏层在 UILayer 之后绘制，结算遮罩盖不住 FIRE/摇杆；结算时收起，
+	# 重开走场景重载会重建，无需手动恢复
+	var tc := get_tree().current_scene.get_node_or_null("TouchControls")
+	if tc:
+		tc.hide()
 	var tw := create_tween()
 	tw.set_ignore_time_scale(true)
 	tw.tween_property(self, "modulate:a", 1.0, 0.25)

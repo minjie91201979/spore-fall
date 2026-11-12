@@ -23,6 +23,7 @@ boot_splash/fullsize=false
 
 GameState="*res://main.gd"
 EventBus="*res://core/EventBus.gd"
+Career="*res://scripts/systems/CareerStats.gd"
 Juice="*res://scripts/fx/Juice.gd"
 Sfx="*res://scripts/fx/Sfx.gd"
 TouchInput="*res://scripts/ui/TouchInput.gd"

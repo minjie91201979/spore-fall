@@ -15,6 +15,7 @@ var is_running: bool = false
 var combo: int = 0
 var combo_timer: float = 0.0
 var max_combo: int = 0
+var _career_tick: float = 0.0   # 存活类成就每秒检查一次，不必每帧
 
 # 武器升级线：拾取孢子晶体累积，攒满升级（射速/弹伤/弹道数成长）
 var weapon_level: int = 1
@@ -25,7 +26,8 @@ var boss_active: bool = false
 var bosses_spawned: int = 0
 
 # 本地最高分（标题页展示 / 结算页判定新纪录）
-const SAVE_PATH := "user://save.cfg"
+# 可写路径：探针改成临时文件，避免污染玩家真实最高分存档
+var save_path: String = "user://save.cfg"
 var best_score: int = 0
 
 # 难度抬档时间阈值（秒）—— 前 2 分宽松，之后每 2/4/8 分抬档（§11.4.4 / §6）
@@ -76,6 +78,7 @@ func start_run() -> void:
 	boss_active = false
 	bosses_spawned = 0
 	is_running = true
+	Career.reset_run()
 
 func end_run() -> void:
 	is_running = false
@@ -84,19 +87,21 @@ func end_run() -> void:
 	if score > best_score:
 		best_score = score
 		_save_best()
+	# 生涯统计与成就先结算，结算页才能读到本局新解锁
+	Career.record_run(score, survived_time, kill_count, max_combo)
 	game_over.emit(score, survived_time)
 
 # ---------- 本地最高分 ----------
 func _load_best() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) == OK:
+	if cfg.load(save_path) == OK:
 		best_score = int(cfg.get_value("record", "best_score", 0))
 
 func _save_best() -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(SAVE_PATH)   # 保留其它字段，读不到就用空配置
+	cfg.load(save_path)   # 保留其它字段，读不到就用空配置
 	cfg.set_value("record", "best_score", best_score)
-	cfg.save(SAVE_PATH)
+	cfg.save(save_path)
 
 func register_kill(points: int = 10) -> void:
 	kill_count += 1
@@ -104,6 +109,7 @@ func register_kill(points: int = 10) -> void:
 	combo += 1
 	combo_timer = 2.5
 	max_combo = maxi(max_combo, combo)
+	Career.note_kill()
 
 # ---------- 武器升级 ----------
 # 升一级所需晶体数：lv1→3, lv2→4, lv3→5 ...（前期快、后期渐慢）
@@ -128,6 +134,10 @@ func _process(delta: float) -> void:
 	if not is_running:
 		return
 	survived_time += delta
+	_career_tick += delta
+	if _career_tick >= 1.0:
+		_career_tick = 0.0
+		Career.note_time(survived_time)
 	var new_tier := _tier_for_time(survived_time)
 	if new_tier != difficulty_tier:
 		difficulty_tier = new_tier

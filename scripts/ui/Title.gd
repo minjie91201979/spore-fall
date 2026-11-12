@@ -8,6 +8,7 @@ extends Control
 @onready var quality_btn: Button = $Center/QualityButton
 @onready var quit_btn: Button = $Center/QuitButton
 @onready var best_label: Label = $Center/BestLabel
+@onready var career_label: Label = $Center/CareerLabel
 @onready var hint_touch: Label = $Hints/TouchHint
 
 func _ready() -> void:
@@ -57,6 +58,10 @@ func _refresh_best() -> void:
 		best_label.visible = true
 	else:
 		best_label.visible = false
+	# 生涯摘要：打过一局才显示，首次进入不占版面
+	var line: String = Career.title_line()
+	career_label.text = line
+	career_label.visible = line != ""
 
 func _quit() -> void:
 	get_tree().quit()
