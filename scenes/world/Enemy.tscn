@@ -10,7 +10,7 @@ radius = 14.0
 [sub_resource type="ShaderMaterial" id="outline_mat"]
 shader = ExtResource("3_outline")
 shader_parameter/outline_color = Color(0.0156863, 0.027451, 0.0392157, 0.9)
-shader_parameter/outline_width = 21.0
+shader_parameter/outline_width = 11.0
 
 [node name="Enemy" type="CharacterBody2D"]
 script = ExtResource("1_enemy")
@@ -21,12 +21,12 @@ color = Color(0.95, 0.4, 0.3, 1)
 
 [node name="Outline" type="Sprite2D" parent="."]
 texture = ExtResource("2_tex")
-scale = Vector2(0.095, 0.095)
+scale = Vector2(0.19, 0.19)
 material = SubResource("outline_mat")
 
 [node name="Sprite" type="Sprite2D" parent="."]
 texture = ExtResource("2_tex")
-scale = Vector2(0.095, 0.095)
+scale = Vector2(0.19, 0.19)
 
 [node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
 

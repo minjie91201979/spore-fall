@@ -5,6 +5,8 @@ extends CharacterBody2D
 # 池化（§11.9）：死亡不再 queue_free，归还 ObjectPool 复用；粒子改为「复制一份留在原地爆」，
 # 本体带着粒子节点回池，保证每次死亡都有击杀爆裂。
 
+const BASE_SCALE := 0.19   # 贴图主体已归一化（210/256），该值对应杂兵约 40px 屏幕尺寸
+
 @export var stats: EnemyStats
 
 const PICKUP_SCENE := preload("res://scenes/world/Pickup.tscn")
@@ -12,6 +14,8 @@ const PICKUP_SCENE := preload("res://scenes/world/Pickup.tscn")
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var particles: GPUParticles2D = $KillParticles
 @onready var outline: Sprite2D = $Outline
+
+var _default_tex: Texture2D
 
 var active: bool = true
 var health: float = 40.0
@@ -39,6 +43,7 @@ var _base_scale: Vector2 = Vector2.ONE * 0.095
 
 func _ready() -> void:
 	add_to_group("enemy")
+	_default_tex = $Sprite.texture   # 池化复用的贴图还原基准
 	if stats:
 		health = stats.max_health
 	_player = get_tree().get_first_node_in_group("player")
@@ -101,15 +106,19 @@ func _setup_ambush(enabled: bool) -> void:
 
 func _apply_visual() -> void:
 	var spr: Sprite2D = $Sprite
+	var tex: Texture2D = stats.sprite_texture if stats else null
 	if stats:
 		spr.modulate = stats.tint
-		spr.scale = Vector2.ONE * (0.095 * stats.scale_mult)
+		spr.scale = Vector2.ONE * (BASE_SCALE * stats.scale_mult)
 	else:
-		spr.modulate = Color(1, 1, 1, 1)
-		spr.scale = Vector2.ONE * 0.095
+		spr.modulate = Color.WHITE
+		spr.scale = Vector2.ONE * BASE_SCALE
+	# 变种专属贴图（池化复用必须双向切：挂上/还原默认）
+	spr.texture = tex if tex else _default_tex
 	_base_scale = spr.scale
-	# 描边层必须跟着体型缩放，否则大块头会露出「一圈看不见的边」
+	# 描边层必须跟着体型与贴图走，否则大块头会露出「一圈看不见的边」
 	if is_instance_valid(outline):
+		outline.texture = spr.texture
 		outline.scale = spr.scale
 
 func _restore_tint() -> void:

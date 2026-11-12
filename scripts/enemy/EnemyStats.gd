@@ -12,6 +12,7 @@ extends Resource
 @export var behavior: String = "walk"     # walk / ambush / elite / boss
 @export var tint: Color = Color(1, 1, 1, 1)   # 精灵染色（变种视觉区分）
 @export var scale_mult: float = 1.0            # 精灵缩放倍率（体型区分）
+@export var sprite_texture: Texture2D          # 变种专属贴图（空 = 用场景默认）
 @export var spawn_weight_tier0: float = 1.0    # 难度档 0 出现权重
 @export var spawn_weight_per_tier: float = 0.0 # 每升一档增加的权重
 

@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_walker.png" id="2_tex"]
 
 [resource]
 script = ExtResource("1_stats")
@@ -12,6 +13,7 @@ attack_power = 8.0
 alert_radius = 320.0
 behavior = "walk"
 tint = Color(1, 1, 1, 1)
+sprite_texture = ExtResource("2_tex")
 scale_mult = 1.0
 spawn_weight_tier0 = 1.0
 spawn_weight_per_tier = 0.0

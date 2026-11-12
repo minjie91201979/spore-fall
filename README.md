@@ -34,7 +34,7 @@ spore-fall/
 │  ├─ fx/Juice.gd             # Autoload: hitstop + 屏震 trauma
 │  └─ ui/HUD.gd               # 读取 GameState 显示
 ├─ shaders/outline.gdshader   # 2D 卡通反向外扩描边（赋给 Sprite2D 的 Material）
-└─ assets/                    # 美术占位（当前为程序化 GradientTexture2D 渐变占位：玩家青蓝/敌人红橙/地面灰蓝，真美术成品待替换）
+└─ assets/                    # 美术成品已接入：玩家 + 5 变种专属贴图（256px 透明底，与图标同调的孢子生物风格），程序化渐变仅剩地面 TileMap
 ```
 
 ## 已接通的系统（对照 §11.7 DoD）
@@ -49,14 +49,15 @@ spore-fall/
 | 精英/Boss 高潮点（§11.4.4） | ✅ | 3/8/15 分召唤「母巢孢」：登场震屏+低频吼 + 顶部血条（`BossBar`）+ 蓄力冲锋（前摇变红可躲）+ 战斗期间暂停常规刷怪 + 击杀 600 分撒一圈晶体；每轮血量 ×(1+1.4n) 递增抵消武器成长 |
 | 标题界面与开局流转 | ✅ | `Title.tscn` 为主场景：孢城标题 + 背景浮尘氛围（纯 _draw）+ 开始/画质/退出 + 本地最高分（`user://save.cfg`）；结算页新增「返回标题」，破纪录时标题变金色「新 纪 录」；PC/手机各一行操作提示 |
 | 伏击体行为分支（§11.5） | ✅ | 新变种「潜伏孢 Lurker」：半埋潜伏（45% 透明度、静止、不吃接触伤害）→ 玩家进警觉半径 340px → 破土前摇 0.35s（变红+弹跳+音效）→ 175 满速追击；`behavior` 字段真正驱动 AI 分支，改 .tres 即换行为 |
+| 美术统一重绘 | ✅ | 每个变种一张专属贴图（walker/runner/brute/lurker/boss + 玩家，256px 透明底）：`EnemyStats.sprite_texture` 数据驱动，`_apply_visual` 池化复用双向切换；原图 512px AI 生成 → `tools/make_sprites.gd` 白底泛洪剔除 + 主体归一化 210px 合成透明画布；贴图分辨率无关（换图只调 `BASE_SCALE`） |
 | 画质档位（§11.6） | ✅ | `Quality` Autoload 三档（低/中/高）：描边 pass 开关、粒子数量比例（1.0/0.7/0.35）、手电光强与半径；HUD 右上按钮实时切换 + `user://settings.cfg` 持久化；手机默认中档、桌面默认高档 |
 | 手机虚拟摇杆可跑 | 🟡 待真机 | 手感参数已按移动端标准调优：死区 0.18 + 全量程重映射、按下弹入/松手淡出、力度可视化、左半屏任意点起杆、FIRE 键滑出不误停；探针 probe_touch.gd 全过，仅剩真机手测 |
 | 同屏 100+ 60fps | ✅ | 实测（Intel UHD 集显、关垂直同步）：100 只 277–297fps / 200 只 162–201fps，p95 帧时间 7.1–12.5ms（60fps 预算 16.6ms）；对象池复用 + 同屏封顶 150 + 避障射线节流 |
 
 ## 切片范围（已做 / 未做）
 
-**已做**：无尽核心循环骨架、随机刷怪、自动索敌、难度缩放、Juice 三件套、HUD、2.5D 节点结构（y_sort）、卡通描边 shader、双端输入抽象。
-**未做（明确 out of scope）**：剧情战役/对话/据点、全部敌人变种与命名 Boss、美术成品（当前为程序化渐变占位，真角色/地面图待 agnes-image 生成替换）、对象池性能优化、导航网格避障。
+**已做**：无尽核心循环骨架、随机刷怪、自动索敌、难度缩放、Juice 三件套、HUD、2.5D 节点结构（y_sort）、卡通描边 shader、双端输入抽象、角色美术成品（玩家 + 5 变种专属贴图）。
+**未做（明确 out of scope）**：剧情战役/对话/据点、全部敌人变种与命名 Boss、地面 TileMap 成品贴图、导航网格避障。
 
 ## 后续 TODO（按优先级）
 
@@ -64,7 +65,7 @@ spore-fall/
 2. ~~**子弹命中**（已完成）：`Player._attack()` 生成 `Bullet`（Area2D），命中 `enemy` 组敌人调 `enemy.take_damage()`，HUD 弹药计数已接。~~
 3. **导航网格**：在 Arena 的 `NavigationRegion2D` 里绘制 `NavigationPolygon`，敌人即从「直接追」切到「避障寻路」。
 4. ~~**手电纹理**（已完成）：`Player.tscn` 的 `Flashlight` 节点已用 `PointLight2D` + `GradientTexture2D` 径向渐变做柔光锥，跟随移动方向旋转。真扇形硬边光锥待补一张锥光 PNG 遮罩（可后续用 agnes-image 生成）。~~
-5. **美术占位替换**：把 `assets/` 的精灵接进 Player/Enemy 的 Sprite2D，并挂 `outline.gdshader` 材质。
+5. ~~**美术占位替换**（已完成）：AI 生成 6 张 512px 角色原图（agnes-image，与图标同风格）→ `tools/make_sprites.gd` 白底泛洪剔除（只清与边缘连通的白色，保留主体内部高光）+ 主体长边归一化 → 256px 透明画布合成；`EnemyStats.sprite_texture` 挂到 5 个 .tres，玩家贴图直连 `Player.tscn`。~~
 6. **手机端**：摇杆手感调优完成，待真机验证一局完整流程（连上 `adb` 后 `adb install build/SporeFall-0.1.0.apk`）。
 7. ~~**对象池**（已完成）：Spawner/Bullet 全走 `ObjectPool` 预实例化池（§11.9），停车场复位防残余碰撞。~~
 8. ~~**画质档位（§11.6）**（已完成）：`Quality` Autoload 三档实时切换，描边/粒子/光源全接，`user://` 持久化。~~
@@ -81,6 +82,15 @@ spore-fall/
 | `icon_adaptive_432.png` + `icon_adaptive_bg.png` | Android 自适应图标前/背景层 |
 
 重新生成流程：agnes-image 出 1024 原图存 `build/icon_raw.png` → `Godot --headless --script tools/make_icons.gd` → `python tools/make_ico.py` → 重导出双端包。
+
+## 角色贴图（assets/characters/）
+
+| 文件 | 挂载点 |
+|---|---|
+| `player.png` | `Player.tscn`（BASE_SCALE 0.2） |
+| `enemy_walker/runner/brute/lurker/boss.png` | 各 `enemy_*.tres` 的 `sprite_texture`（Enemy BASE_SCALE 0.19 × 变种 scale_mult） |
+
+重新生成流程：agnes-image 出 512px 原图存 `build/sprites_raw/` → `Godot --headless --script tools/make_sprites.gd`（白底泛洪剔除 + 主体归一化 210px）→ 自动写回 `assets/characters/`。注意屏幕上环宽 = outline_width(texel) × sprite_scale，换贴图分辨率只需调 scale。
 
 ## 性能基线（§11.7）
 

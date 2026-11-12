@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_boss.png" id="2_tex"]
 
 [resource]
 script = ExtResource("1_stats")
@@ -12,6 +13,7 @@ attack_power = 20.0
 alert_radius = 900.0
 behavior = "boss"
 tint = Color(0.95, 0.28, 0.55, 1)
+sprite_texture = ExtResource("2_tex")
 scale_mult = 2.8
 spawn_weight_tier0 = 0.0
 spawn_weight_per_tier = 0.0
