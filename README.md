@@ -68,6 +68,18 @@ spore-fall/
 7. ~~**对象池**（已完成）：Spawner/Bullet 全走 `ObjectPool` 预实例化池（§11.9），停车场复位防残余碰撞。~~
 8. ~~**画质档位（§11.6）**（已完成）：`Quality` Autoload 三档实时切换，描边/粒子/光源全接，`user://` 持久化。~~
 9. ~~**性能压测（§11.7）**（已完成）：见下方性能基线。~~
+10. ~~**应用 Icon 与启动闪屏**（已完成）：AI 生成孢子生物图标（agnes-image）→ `tools/make_icons.gd` 裁边 + 圆角透明 + 全套尺寸 → `tools/make_ico.py` 合成 Windows ICO。EXE / APK（legacy + adaptive）/ 工程图标 / 启动闪屏全部替换。~~
+
+## 品牌资产（assets/icons/）
+
+| 文件 | 用途 |
+|---|---|
+| `icon_1024.png` | 项目主图标（`project.godot config/icon`） |
+| `icon.ico` | Windows EXE 内嵌图标（256/128/64/48/32/16） |
+| `icon_192.png` | Android legacy launcher 图标 |
+| `icon_adaptive_432.png` + `icon_adaptive_bg.png` | Android 自适应图标前/背景层 |
+
+重新生成流程：agnes-image 出 1024 原图存 `build/icon_raw.png` → `Godot --headless --script tools/make_icons.gd` → `python tools/make_ico.py` → 重导出双端包。
 
 ## 性能基线（§11.7）
 
