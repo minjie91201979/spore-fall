@@ -5,6 +5,8 @@ extends Node
 signal difficulty_changed(tier: int)
 signal game_over(final_score: int, survived_time: float)
 signal weapon_leveled(level: int)
+signal upgrade_ready(choices: Array)
+signal upgrade_applied(id: String)
 
 var survived_time: float = 0.0
 var score: int = 0
@@ -17,9 +19,27 @@ var combo_timer: float = 0.0
 var max_combo: int = 0
 var _career_tick: float = 0.0   # 存活类成就每秒检查一次，不必每帧
 
-# 武器升级线：拾取孢子晶体累积，攒满升级（射速/弹伤/弹道数成长）
+# 武器升级线：拾取孢子晶体累积，攒满触发一次「三选一升级卡」（§11.11）
 var weapon_level: int = 1
 var crystals: int = 0
+var upgrades_taken: int = 0
+
+# 局内 Build 加成：卡片只改这里，Player / Bullet / Pickup 各自读取重算，
+# 谁都不必认识「卡片」这个概念。乘区默认 1.0、加区默认 0；每局 start_run 全量重置。
+var mods: Dictionary = {}
+var taken_upgrades: Dictionary = {}
+
+# 升级点门槛：基础 6 颗，每拿一张 +2（6 / 8 / 10 / 12 …）。
+# 原来是 3/4/5，太密，暂停选卡会一直打断爽刷；拉稀疏后一局约 4~7 次选择。
+const UPGRADE_COST_BASE := 6
+const UPGRADE_COST_STEP := 2
+
+static func default_mods() -> Dictionary:
+	return {
+		"fire_rate": 1.0, "damage": 1.0, "projectiles": 0,
+		"move_speed": 1.0, "max_health": 0.0, "magnet": 1.0,
+		"pierce": 0, "bullet_speed": 1.0,
+	}
 
 # 精英/Boss 高潮点（§11.4.4）：同一时间只允许一只，存活期间暂停常规刷怪
 var boss_active: bool = false
@@ -36,6 +56,8 @@ const TIER_THRESHOLDS: Array = [0.0, 120.0, 240.0, 480.0]
 func _ready() -> void:
 	_register_input()
 	_load_best()
+	# 标题页 / 探针也可能直接读 mods，不能只靠 Arena.start_run 初始化
+	mods = default_mods()
 
 # ---------- 输入注册（代码方式，等价于 project.godot [input]） ----------
 func _register_input() -> void:
@@ -75,6 +97,11 @@ func start_run() -> void:
 	difficulty_tier = 0
 	weapon_level = 1
 	crystals = 0
+	upgrades_taken = 0
+	mods = default_mods()
+	taken_upgrades.clear()
+	# 上一局若在选卡界面中退出（重载/返回标题），别把暂停状态带进新一局
+	get_tree().paused = false
 	boss_active = false
 	bosses_spawned = 0
 	is_running = true
@@ -111,20 +138,49 @@ func register_kill(points: int = 10) -> void:
 	max_combo = maxi(max_combo, combo)
 	Career.note_kill()
 
-# ---------- 武器升级 ----------
-# 升一级所需晶体数：lv1→3, lv2→4, lv3→5 ...（前期快、后期渐慢）
+# ---------- 局内升级（三选一，§11.11） ----------
 func crystals_for_next() -> int:
-	return weapon_level + 2
+	# 用 weapon_level 而非「已选卡数」做门槛：攒满瞬间就抬价，
+	# 不必等玩家点完卡片，也不会因为卡池抽空而卡在旧门槛
+	return UPGRADE_COST_BASE + (weapon_level - 1) * UPGRADE_COST_STEP
 
 func add_crystal() -> void:
 	crystals += 1
-	var leveled := false
-	while crystals >= crystals_for_next():
-		crystals -= crystals_for_next()
-		weapon_level += 1
-		leveled = true
-	if leveled:
-		weapon_leveled.emit(weapon_level)
+	if crystals < crystals_for_next():
+		return
+	crystals = 0
+	# 基础成长保留：即便卡池抽空，射速/伤害/弹道线依旧有节奏地往上走
+	weapon_level += 1
+	weapon_leveled.emit(weapon_level)
+	var choices: Array = UpgradePool.pick(taken_upgrades)
+	if not choices.is_empty():
+		upgrade_ready.emit(choices)
+
+# 应用一张卡：只累加 mods，并广播让 Player / HUD 刷新。
+# 暂停与恢复由 UpgradeUI 负责，GameState 不持有任何 UI 状态。
+func apply_upgrade(id: String) -> void:
+	if UpgradePool.by_id(id).is_empty():
+		return
+	taken_upgrades[id] = int(taken_upgrades.get(id, 0)) + 1
+	upgrades_taken += 1
+	match id:
+		"fire_rate":
+			mods.fire_rate *= 1.15
+		"damage":
+			mods.damage *= 1.20
+		"projectiles":
+			mods.projectiles += 1
+		"move_speed":
+			mods.move_speed *= 1.12
+		"vitality":
+			mods.max_health += 25.0
+		"magnet":
+			mods.magnet *= 1.30
+		"pierce":
+			mods.pierce += 1
+		"bullet_speed":
+			mods.bullet_speed *= 1.25
+	upgrade_applied.emit(id)
 
 func _process(delta: float) -> void:
 	if combo_timer > 0.0:

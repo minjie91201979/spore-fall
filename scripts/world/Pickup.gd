@@ -49,10 +49,14 @@ func _physics_process(delta: float) -> void:
 	# 磁吸 + 拾取（玩家死亡后不再吸）
 	if is_instance_valid(_player) and not _player.get("is_dead"):
 		var d: float = global_position.distance_to(_player.global_position)
-		if d < MAGNET_RADIUS:
+		if d < magnet_radius():
 			_base_pos = _base_pos.move_toward(_player.global_position, delta * MAGNET_SPEED)
 		if d < COLLECT_RADIUS:
 			_collect()
+
+# 每帧读乘区：选完「引力场」后场上已存在的晶体也立刻扩大吸附范围
+func magnet_radius() -> float:
+	return MAGNET_RADIUS * float(GameState.mods.magnet)
 
 func _collect() -> void:
 	_collected = true

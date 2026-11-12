@@ -31,6 +31,17 @@ func _ready() -> void:
 	attack_btn.button_down.connect(_on_attack_down)
 	attack_btn.button_up.connect(_on_attack_up)
 
+# 升级弹窗会暂停整棵树，暂停期间手指松开的事件可能丢给已停处理的节点。
+# 关闭弹窗前由 UpgradeUI 调这里统一复位，否则恢复瞬间角色会「自己走」或 FIRE 自动连发。
+func reset_input() -> void:
+	_attack_held = false
+	_joy_active = false
+	_joy_id = -2
+	TouchInput.move_vector = Vector2.ZERO
+	attack_btn.scale = Vector2.ONE
+	joy_base.visible = false
+	joy_knob.visible = false
+
 # ---------------- 开火 ----------------
 func _on_attack_down() -> void:
 	_attack_held = true

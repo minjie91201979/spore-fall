@@ -12,6 +12,7 @@ var ammo: int = 20
 var is_dead: bool = false
 var _last_dir: Vector2 = Vector2.RIGHT
 var _fire_cd: float = 0.0
+var _health_base: float = 100.0   # @export 基准值，「厚壁」卡只叠加在它之上
 
 # 武器数值（由 GameState.weapon_level 派生，升级即刷新）
 var fire_interval: float = 0.22
@@ -23,8 +24,11 @@ var projectile_count: int = 1
 
 func _ready() -> void:
 	add_to_group("player")
+	_health_base = max_health
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
+	GameState.upgrade_applied.connect(_on_upgrade_applied)
 	_apply_weapon_level()
+	health = max_health
 	# 画质档位注册（§11.6）：描边 pass 与手电光都受档位控制
 	Quality.register_outline(outline)
 	Quality.register_light(flashlight)
@@ -38,7 +42,7 @@ func _physics_process(_delta: float) -> void:
 	dir += TouchInput.move_vector
 	if dir.length() > 1.0:
 		dir = dir.normalized()
-	velocity = dir * SPEED
+	velocity = dir * current_speed()
 	if dir != Vector2.ZERO:
 		_last_dir = dir.normalized()
 		flashlight.rotation = dir.angle()
@@ -46,6 +50,10 @@ func _physics_process(_delta: float) -> void:
 	# 限制在竞技场范围内，避免走出地面看到灰色虚空
 	global_position.x = clampf(global_position.x, -880.0, 880.0)
 	global_position.y = clampf(global_position.y, -880.0, 880.0)
+
+# 单独抽出来便于探针断言「轻足」卡真的改了移速，而不是只改了字典
+func current_speed() -> float:
+	return SPEED * float(GameState.mods.move_speed)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_dead:
@@ -114,16 +122,26 @@ func _auto_aim_dir() -> Vector2:
 		return Vector2.ZERO
 	return (best.global_position - global_position).normalized()
 
-# 升级回调：按当前武器等级刷新数值
+# 升级回调：按当前武器等级刷新数值（基础成长与卡池加成在这里合流）
 func _on_weapon_leveled(_lv: int) -> void:
 	_apply_weapon_level()
 	Juice.add_trauma(0.2)
 
+# 选卡完成：重算全部数值。「厚壁」额外立即回 25，和卡面文案对齐。
+func _on_upgrade_applied(id: String) -> void:
+	_apply_weapon_level()
+	if id == "vitality":
+		heal(25.0)
+	Juice.add_trauma(0.14)
+
 func _apply_weapon_level() -> void:
 	var lv: int = GameState.weapon_level
-	bullet_damage = 12.0 * (1.0 + 0.45 * (lv - 1))
-	fire_interval = 0.22 * pow(0.88, lv - 1)
-	projectile_count = 1 + (1 if lv >= 3 else 0) + (1 if lv >= 6 else 0)
+	var m: Dictionary = GameState.mods
+	bullet_damage = 12.0 * (1.0 + 0.45 * (lv - 1)) * float(m.damage)
+	# 下限保护：射速卡叠满 + 高武器等级时不许把冷却压到 0，避免一帧多发炸物理
+	fire_interval = maxf(0.045, (0.22 * pow(0.88, lv - 1)) / float(m.fire_rate))
+	projectile_count = 1 + (1 if lv >= 3 else 0) + (1 if lv >= 6 else 0) + int(m.projectiles)
+	max_health = _health_base + float(m.max_health)
 
 func heal(amount: float) -> void:
 	if is_dead:

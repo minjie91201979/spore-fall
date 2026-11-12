@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/Arena.gd" id="1_arena"]
 [ext_resource type="Script" path="res://scripts/enemy/Spawner.gd" id="2_spawn"]
@@ -19,6 +19,7 @@
 [ext_resource type="Resource" path="res://assets/data/enemy_lurker.tres" id="17_lurker"]
 [ext_resource type="Resource" path="res://assets/data/enemy_miasma.tres" id="18_miasma"]
 [ext_resource type="Resource" path="res://assets/data/enemy_splitter.tres" id="19_splitter"]
+[ext_resource type="PackedScene" path="res://scenes/ui/UpgradeUI.tscn" id="20_upgrade"]
 
 [sub_resource type="NavigationPolygon" id="nav_poly"]
 vertices = PackedVector2Array(-900, -900, 310, -900, 310, 900, -900, 900, 450, -900, 900, -900, 900, 900, 450, 900, 310, -900, 450, -900, 450, -710, 310, -710, 310, -570, 450, -570, 450, 900, 310, 900)
@@ -80,5 +81,7 @@ script = ExtResource("6_shake")
 [node name="BossBar" parent="UILayer" instance=ExtResource("15_bossbar")]
 
 [node name="GameOver" parent="UILayer" instance=ExtResource("7_gameover")]
+
+[node name="UpgradeUI" parent="UILayer" instance=ExtResource("20_upgrade")]
 
 [node name="TouchControls" parent="." instance=ExtResource("9_touch")]

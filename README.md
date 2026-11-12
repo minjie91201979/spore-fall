@@ -8,14 +8,14 @@
 1. 用已安装的 **Godot 4.7** 打开本文件夹（`spore-fall/`）作为项目（Project → Import / Open）。
 2. 按 F5 运行主场景 `res://scenes/world/Arena.tscn`。
 3. 操作：**WASD / 方向键** 移动，**空格** 攻击（消耗弹药 + hitstop），**E** 互动（预留）。手机端左半屏虚拟摇杆走位 + 右下 FIRE 按住连发，**开火自动锁定 560px 内最近的敌人**，不用为了瞄准而改变走位。
+4. 攒满孢子晶体（6 / 8 / 10 … 颗，逐级递增）会**暂停并弹出三选一强化卡**：点击卡片选择，PC 也可按 **1 / 2 / 3**。选完立刻恢复战斗，每局能长出不同 Build。
 
 ## 工程结构
 
 ```
 spore-fall/
-├─ project.godot              # 工程配置：主场景 + GameState/EventBus/Juice 三个 Autoload + GL Compatibility
-├─ icon.svg
-├─ main.gd                    # Autoload: GameState（计时/分数/难度档/连杀 + 代码注册 InputMap）
+├─ project.godot              # 工程配置：主场景 + 7 个 Autoload + GL Compatibility
+├─ main.gd                    # Autoload: GameState（计时/分数/难度档/连杀/最高分/升级点 mods + 代码注册 InputMap）
 ├─ core/EventBus.gd           # Autoload: 解耦事件总线
 ├─ scenes/
 │  ├─ world/Arena.tscn        # 主战场（y_sort + 导航区 + TileMap + 黑暗 + 玩家 + 刷怪器 + 相机 + HUD 层）
@@ -31,8 +31,11 @@ spore-fall/
 │  ├─ enemy/Spawner.gd        # 环外随机刷怪 + 难度缩放间隔
 │  ├─ systems/Inventory.gd    # 弹药/草药/血清背包
 │  ├─ systems/DifficultyCurve.gd # 难度缩放工具（静态方法）
+│  ├─ systems/CareerStats.gd  # Autoload: 生涯统计 + 成就（user://career.cfg）
+│  ├─ systems/UpgradePool.gd  # 三选一卡池数据（8 张卡 + 叠加上限 + 抽取）
 │  ├─ fx/Juice.gd             # Autoload: hitstop + 屏震 trauma
-│  └─ ui/HUD.gd               # 读取 GameState 显示
+│  ├─ ui/HUD.gd               # 读取 GameState 显示 + 成就/升级 toast
+│  └─ ui/UpgradeUI.gd         # 暂停三选一选卡界面（scenes/ui/UpgradeUI.tscn）
 ├─ shaders/outline.gdshader   # 2D 卡通反向外扩描边（赋给 Sprite2D 的 Material）
 └─ assets/                    # 美术成品已接入：玩家 + 5 变种专属贴图（256px 透明底，与图标同调的孢子生物风格），程序化渐变仅剩地面 TileMap
 ```
@@ -57,6 +60,7 @@ spore-fall/
 | 分裂孢 Splitter（§11.5 M4） | ✅ | 死亡裂出 2 只迷你子体：同参数谱 + 血量 ×0.45 + 体型 ×0.62，子体带防递归标记（死亡不再分裂），活跃数 ≥140 时放弃分裂守住性能；池化复用清标记。`behavior` 数据驱动的第三、四条分支 |
 | 移动端瞄准与移速平衡 | ✅ | 原先「射击方向 = 最后移动方向」，摇杆既走位又瞄准，手机上想打左边就得往左走。现开火自动锁 560px 内最近活敌（跑动时朝移动方向的目标 30% 加权），摇杆只管走位；无目标回退最后移动方向。开关 `TouchInput.auto_aim`（置 false 回老手感）。同时全变种移速下调 20%（玩家 220 不变，突围余量更大），Boss 冲锋倍率 4.0→5.0 单独补偿，保持 250px/s 的威胁 |
 | 生涯统计 + 成就（§11.8） | ✅ | `Career` Autoload（`user://career.cfg`，与 `best_score` 的 `save.cfg` 分离）：累计局数/击杀/时长、最长存活、最高连杀、单局最高击杀；6 个成就（初入孢城 / 百孢斩 / 千孢斩 / 持久战 / 连杀狂人 / 高分猎手）。累计击杀与存活时长**局内实时解锁**并由 HUD 顶部固定 toast 提示（不挤动布局），单局成就结算时判定；结算页展示生涯摘要 + 本局新成就金色行，标题页展示「N 局 · 累计击杀 · 成就 x/6」。两个存档路径均可写，探针改临时文件不污染真实进度 |
+| 局内三选一升级卡（§11.11） | ✅ | 晶体攒满（6/8/10… 颗，比原先 3/4/5 稀疏一倍，不打断爽刷）→ **暂停 → 三选一 → 恢复**：8 张卡、每卡有叠加上限，卡池数据 `UpgradePool` 与效果完全解耦，只改 `GameState.mods` 乘区/加区，由 `Player` / `Bullet` / `Pickup` 各自读取重算。覆盖射速、伤害、弹道数、移速、最大生命、磁吸、**子弹穿透**、弹速射程八个维度；选卡界面根节点 `PROCESS_MODE_ALWAYS`，鼠标/触屏与键盘 1/2/3 在暂停中都能操作，关闭时复位摇杆与 FIRE 按住状态；HUD 顶部 toast 与结算/标题的 BUILD 计数同步 |
 | 画质档位（§11.6） | ✅ | `Quality` Autoload 三档（低/中/高）：描边 pass 开关、粒子数量比例（1.0/0.7/0.35）、手电光强与半径；HUD 右上按钮实时切换 + `user://settings.cfg` 持久化；手机默认中档、桌面默认高档 |
 | 手机虚拟摇杆可跑 | 🟡 待真机 | 手感参数已按移动端标准调优：死区 0.18 + 全量程重映射、按下弹入/松手淡出、力度可视化、左半屏任意点起杆、FIRE 键滑出不误停；探针 probe_touch.gd 全过，仅剩真机手测 |
 | 同屏 100+ 60fps | ✅ | 实测（Intel UHD 集显、关垂直同步）：100 只 277–297fps / 200 只 162–201fps，p95 帧时间 7.1–12.5ms（60fps 预算 16.6ms）；对象池复用 + 同屏封顶 150 + 避障射线节流 |
@@ -84,6 +88,7 @@ spore-fall/
 13. ~~**M4 新变种：毒雾孢 / 分裂孢**（已完成）：agnes-image 图生图（以现有贴图为风格锚点）→ 后处理接入；`behavior` 第三/四条数据驱动分支，死亡留毒雾区 / 裂出防递归迷你子体。~~
 14. ~~**移动端瞄准与移速平衡**（已完成）：自动锁定最近敌人让走位与开火解耦；全变种移速 −20%，Boss 冲锋倍率补偿。~~
 15. ~~**生涯统计 + 成就系统**（已完成）：`Career` 跨局沉淀 + 6 个成就 + 局内 toast / 结算页 / 标题页三处展示；结算时收起浮在遮罩上的触屏 FIRE 键。~~
+16. ~~**局内三选一升级卡**（已完成）：把「攒满晶体静默自动升级」换成「暂停 → 三选一 → 继续」，8 张卡构成每局不同的 Build；详见下方专节。~~
 
 ## 品牌资产（assets/icons/）
 
@@ -105,6 +110,39 @@ spore-fall/
 | `enemy_miasma/splitter.png` | 新增 M4 变种专属贴图（同为 512px 图生图 → 256px 透明画布） |
 
 重新生成流程：agnes-image 出 512px 原图存 `build/sprites_raw/` → `Godot --headless --script tools/make_sprites.gd`（白底泛洪剔除 + 主体归一化 210px）→ 自动写回 `assets/characters/`。注意屏幕上环宽 = outline_width(texel) × sprite_scale，换贴图分辨率只需调 scale。
+
+## 局内升级卡（§11.11）
+
+**为什么改**：原先晶体攒满后 `GameState.weapon_level` 静默 +1，成长完全隐形、每局体验一模一样。爽刷品类的核心乐趣是「这局长出什么 Build」，所以把自动升级换成有决策的三选一。
+
+**链路**：
+
+```
+拾取晶体 → GameState.add_crystal() 攒满（6 / 8 / 10 … 颗，按 weapon_level 递增）
+  → weapon_level +1（基础成长保留）+ upgrade_ready(UpgradePool.pick(taken))
+  → UpgradeUI 监听：get_tree().paused = true，展示三张卡（触屏/鼠标点击 或 键盘 1/2/3）
+  → GameState.apply_upgrade(id)：只累加 GameState.mods，广播 upgrade_applied
+  → UI 恢复 paused = false + 复位摇杆/FIRE；HUD 弹「获得强化」toast
+```
+
+**架构约束**：卡池数据（`scripts/systems/UpgradePool.gd`）与效果彻底解耦。`mods` 里乘区默认 `1.0`、加区默认 `0`，`Player` 在 `_apply_weapon_level()` 合流基础成长与加成，`Bullet` 在 `setup()` 发射瞬间取快照，`Pickup.magnet_radius()` 每帧读取（场上已有晶体立刻吃到加成）。**任何系统都不认识「卡片」这个概念**，加第九张卡只需在 `CARDS` 里加一行 + 在 `apply_upgrade` 加一个 match 分支。
+
+| 卡 | 效果 | 上限 |
+|---|---|---|
+| 疾速孢子 / 尖刺孢囊 | 射速 +15% / 伤害 +20%（乘区） | 6 / 8 |
+| 分裂射 / 贯穿孢针 | 弹道 +1 / 穿透 +1（加区） | 4 / 3 |
+| 轻足 / 厚壁 | 移速 +12% / 最大生命 +25 且立即回 25 | 4 / 6 |
+| 引力场 / 疾风孢针 | 磁吸半径 +30% / 弹速 +25%（射程同步变长） | 4 / 4 |
+
+**几个刻意的实现取舍**：
+
+- 门槛从 3/4/5 颗拉到 6/8/10…：选卡要暂停，太密会打断爽刷节奏，一局约 4~7 次选择刚好。
+- `UpgradeUI` 根节点 `PROCESS_MODE_ALWAYS`：暂停时它自己还要收输入，用默认 PAUSABLE 会把卡片一起冻住。触屏/鼠标命中在 `_input` 里按卡片矩形自己判定，不赌「暂停时 Button 还收不收 GUI 输入」；命中后 `accept_event()` 防止 Button 重复触发。
+- 关闭弹窗调 `TouchControls.reset_input()`：暂停期间手指松开的事件会丢，不复位的话恢复瞬间角色自己走 / FIRE 自动连发。
+- `Bullet.pierce` 用 `_hit_ids` 去重，且柱子照常销毁子弹（穿透只穿怪，不破坏掩体博弈）；`fire_interval` 有 0.045s 下限，防止叠满射速卡后一帧多发炸物理。
+- 不做入场 Tween 动画：暂停中的 Tween 推进受 process_mode 影响，宁可「立刻可读」。
+
+验证：`tests/probe_upgrade.gd`（14 项断言，卡池/稀疏门槛/暂停/点击/键盘/mods/Player/Bullet/Pickup/HUD/结算兜底/重开重置）、`tests/probe_upgrade_click.gd`（**必须真渲染**，验证暂停中真实鼠标点击；`--headless` 下 dummy 字体度量会把 VBox 撑高、卡片矩形算到 y≈617 而打空）、`tests/shot_upgrade.gd`（两张视觉截图）。
 
 ## 性能基线（§11.7）
 

@@ -15,6 +15,7 @@ func _ready() -> void:
 	EventBus.quality_changed.connect(_on_quality_changed)
 	EventBus.achievement_unlocked.connect(_on_achievement)
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
+	GameState.upgrade_applied.connect(_on_upgrade_applied)
 	GameState.game_over.connect(_on_game_over)
 	quality_button.pressed.connect(_on_quality_pressed)
 	_update_quality_text()
@@ -42,17 +43,28 @@ func _on_player_hit(_dmg: int) -> void:
 	var t := create_tween()
 	t.tween_property(damage_flash, "modulate:a", 0.0, 0.35)
 
-# 成就解锁 toast：固定绝对定位，不 push 任何布局；后来的解锁直接接管同一条时间轴
-func _on_achievement(name: String) -> void:
+# 顶部固定绝对定位 toast：不 push 任何布局；后来的消息 kill 旧 tween 直接接管同一条时间轴。
+# 成就与升级卡共用一条，避免两条提示叠在一起互相盖住。
+func _show_toast(text: String, col: Color) -> void:
 	if _toast_tw and _toast_tw.is_valid():
 		_toast_tw.kill()
-	toast_label.text = "★ 成就解锁　" + name
+	toast_label.text = text
+	toast_label.add_theme_color_override("font_color", col)
 	toast_label.modulate.a = 0.0
 	_toast_tw = create_tween()
 	_toast_tw.set_ignore_time_scale(true)
 	_toast_tw.tween_property(toast_label, "modulate:a", 1.0, 0.18)
 	_toast_tw.tween_interval(2.2)
 	_toast_tw.tween_property(toast_label, "modulate:a", 0.0, 0.45)
+
+func _on_achievement(name: String) -> void:
+	_show_toast("★ 成就解锁　" + name, Color(1.0, 0.84, 0.35, 1))
+
+func _on_upgrade_applied(id: String) -> void:
+	var card: Dictionary = UpgradePool.by_id(id)
+	if not card.is_empty():
+		_show_toast("✓ 获得强化　" + card.name, card.color)
+	_on_weapon_leveled(GameState.weapon_level)
 
 func _on_weapon_leveled(_lv: int) -> void:
 	# 升级金色脉冲
@@ -75,5 +87,6 @@ func _process(_delta: float) -> void:
 			ammo_label.text = "AMMO ∞"
 		else:
 			ammo_label.text = "AMMO %02d" % player.ammo
-	weapon_label.text = "WEAPON LV%d  %d/%d" % [
-		GameState.weapon_level, GameState.crystals, GameState.crystals_for_next()]
+	weapon_label.text = "WEAPON LV%d  %d/%d  ·  BUILD %d" % [
+		GameState.weapon_level, GameState.crystals, GameState.crystals_for_next(),
+		GameState.upgrades_taken]
