@@ -16,5 +16,10 @@ func hitstop(time_scale: float = 0.05, duration: float = 0.08) -> void:
 func add_trauma(amount: float) -> void:
 	trauma = min(trauma + amount, 1.0)
 
+# 移动端触觉反馈（桌面端自动跳过）：受击轻震、死亡/Boss 登场重震
+func haptic(duration_ms: int = 30) -> void:
+	if OS.has_feature("mobile"):
+		Input.vibrate_handheld(duration_ms)
+
 func _process(delta: float) -> void:
 	trauma = max(trauma - delta * 1.2, 0.0)

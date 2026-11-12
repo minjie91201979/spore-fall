@@ -58,6 +58,7 @@ func spawn_boss() -> Node2D:
 	EventBus.boss_spawned.emit(boss_stats.display_name, e.get("max_health"))
 	# 登场仪式感：屏幕一震 + 低频吼 + 场上杂兵被冲击波清开（不做，留白给 Boss 让位）
 	Juice.add_trauma(0.6)
+	Juice.haptic(120)
 	Sfx.play("hurt", 0.4, 5.0)
 	return e
 

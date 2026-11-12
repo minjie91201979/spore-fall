@@ -104,6 +104,7 @@ func take_damage(amount: float) -> void:
 		return
 	health -= amount
 	Juice.add_trauma(0.3)
+	Juice.haptic(28)
 	Sfx.play("hurt")
 	EventBus.player_hit.emit(amount)
 	if health <= 0:
@@ -122,6 +123,7 @@ func _die() -> void:
 	Engine.time_scale = 0.28
 	Sfx.play("hurt", 0.62, 2.0)
 	Juice.add_trauma(0.65)
+	Juice.haptic(150)
 	var cam := get_viewport().get_camera_2d()
 	var tw := create_tween()
 	tw.set_ignore_time_scale(true)
