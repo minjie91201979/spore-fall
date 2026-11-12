@@ -6,11 +6,24 @@ extends Control
 @onready var ammo_label: Label = $AmmoLabel
 @onready var weapon_label: Label = $WeaponLabel
 @onready var damage_flash: ColorRect = $DamageFlash
+@onready var quality_button: Button = $QualityButton
 
 func _ready() -> void:
 	EventBus.player_hit.connect(_on_player_hit)
+	EventBus.quality_changed.connect(_on_quality_changed)
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
 	GameState.game_over.connect(_on_game_over)
+	quality_button.pressed.connect(_on_quality_pressed)
+	_update_quality_text()
+
+func _on_quality_pressed() -> void:
+	Quality.cycle()
+
+func _on_quality_changed(_lv: int) -> void:
+	_update_quality_text()
+
+func _update_quality_text() -> void:
+	quality_button.text = "画质 %s" % Quality.LEVEL_NAMES[Quality.level]
 
 func _on_game_over(_score: int, _time: float) -> void:
 	# 死亡时让 HUD 淡出，给结算层让位

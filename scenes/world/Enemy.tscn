@@ -1,10 +1,16 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy/Enemy.gd" id="1_enemy"]
 [ext_resource type="Texture2D" path="res://assets/characters/enemy.png" id="2_tex"]
+[ext_resource type="Shader" path="res://shaders/outline.gdshader" id="3_outline"]
 
 [sub_resource type="CircleShape2D" id="circle_shape"]
 radius = 14.0
+
+[sub_resource type="ShaderMaterial" id="outline_mat"]
+shader = ExtResource("3_outline")
+shader_parameter/outline_color = Color(0.0156863, 0.027451, 0.0392157, 0.9)
+shader_parameter/outline_width = 21.0
 
 [node name="Enemy" type="CharacterBody2D"]
 script = ExtResource("1_enemy")
@@ -12,6 +18,11 @@ script = ExtResource("1_enemy")
 [node name="BodyPoly" type="Polygon2D" parent="."]
 polygon = PackedVector2Array(-12, -12, 12, -12, 12, 12, -12, 12)
 color = Color(0.95, 0.4, 0.3, 1)
+
+[node name="Outline" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+scale = Vector2(0.095, 0.095)
+material = SubResource("outline_mat")
 
 [node name="Sprite" type="Sprite2D" parent="."]
 texture = ExtResource("2_tex")

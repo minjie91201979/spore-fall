@@ -9,3 +9,6 @@ signal pickup_collected(type: String, amount: int)
 signal boss_spawned(display_name: String, max_health: float)
 signal boss_damaged(health: float, max_health: float)
 signal boss_defeated(display_name: String)
+
+# 画质档位切换（§11.6）：HUD 按钮文案等 UI 跟随刷新
+signal quality_changed(level: int)

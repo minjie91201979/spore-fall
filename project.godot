@@ -23,6 +23,7 @@ EventBus="*res://core/EventBus.gd"
 Juice="*res://scripts/fx/Juice.gd"
 Sfx="*res://scripts/fx/Sfx.gd"
 TouchInput="*res://scripts/ui/TouchInput.gd"
+Quality="*res://scripts/systems/QualitySettings.gd"
 
 [display]
 

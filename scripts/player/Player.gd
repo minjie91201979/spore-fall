@@ -19,11 +19,15 @@ var bullet_damage: float = 12.0
 var projectile_count: int = 1
 
 @onready var flashlight: PointLight2D = $Flashlight
+@onready var outline: Sprite2D = $Outline
 
 func _ready() -> void:
 	add_to_group("player")
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
 	_apply_weapon_level()
+	# 画质档位注册（§11.6）：描边 pass 与手电光都受档位控制
+	Quality.register_outline(outline)
+	Quality.register_light(flashlight)
 
 func _physics_process(_delta: float) -> void:
 	if is_dead:
@@ -113,6 +117,7 @@ func _die() -> void:
 	is_dead = true
 	GameState.end_run()
 	set_physics_process(false)
+	outline.visible = false   # 描边是独立 pass，不吃 modulate 淡出，直接关掉防残影
 	# 死亡演出：慢动作 + 镜头推近 + 玩家淡出（tween 用真实时间，不受 time_scale 影响）
 	Engine.time_scale = 0.28
 	Sfx.play("hurt", 0.62, 2.0)

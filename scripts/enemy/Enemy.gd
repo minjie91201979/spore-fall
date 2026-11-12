@@ -11,6 +11,7 @@ const PICKUP_SCENE := preload("res://scenes/world/Pickup.tscn")
 
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var particles: GPUParticles2D = $KillParticles
+@onready var outline: Sprite2D = $Outline
 
 var active: bool = true
 var health: float = 40.0
@@ -31,6 +32,9 @@ func _ready() -> void:
 	if stats:
 		health = stats.max_health
 	_player = get_tree().get_first_node_in_group("player")
+	# 画质档位注册（§11.6）：描边 pass 与击杀粒子密度
+	Quality.register_outline(outline)
+	Quality.register_particles(particles)
 	# 延后一帧等导航地图同步完成（Godot 4.x 推荐），再配置 agent 参数
 	await get_tree().physics_frame
 	nav_agent.path_desired_distance = 6.0
@@ -76,6 +80,9 @@ func _apply_visual() -> void:
 	else:
 		spr.modulate = Color(1, 1, 1, 1)
 		spr.scale = Vector2.ONE * 0.095
+	# 描边层必须跟着体型缩放，否则大块头会露出「一圈看不见的边」
+	if is_instance_valid(outline):
+		outline.scale = spr.scale
 
 func _restore_tint() -> void:
 	var spr: Sprite2D = $Sprite
