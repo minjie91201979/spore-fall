@@ -13,6 +13,7 @@ attack_power = 15.0
 alert_radius = 300.0
 behavior = "elite"
 tint = Color(0.62, 0.3, 0.85, 1)
+blood_color = Color(0.42, 0.20, 0.64, 1)
 sprite_texture = ExtResource("2_tex")
 scale_mult = 1.6
 spawn_weight_tier0 = 0.0

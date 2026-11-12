@@ -125,6 +125,15 @@ func _restore_tint() -> void:
 	var spr: Sprite2D = $Sprite
 	spr.modulate = _base_tint
 
+# 血渍颜色：数据驱动优先（blood_color 显式配置），未配置时回退 tint 调暗
+# （walker 的 tint 是白色——它的青色在贴图里——所以每个 .tres 都显式写了血色）
+func _blood_color() -> Color:
+	if stats and stats.blood_color.a > 0.5:
+		return stats.blood_color
+	if stats:
+		return Color(stats.tint.r * 0.55, stats.tint.g * 0.55, stats.tint.b * 0.55)
+	return Color(0.16, 0.55, 0.5)
+
 # 前摇染色：Boss 蓄力时整只精灵被推亮成血红色，玩家一眼读懂「要冲了」
 func _flash_tint(c: Color, dur: float) -> void:
 	var spr: Sprite2D = $Sprite
@@ -281,6 +290,10 @@ func _die() -> void:
 
 func _deferred_die() -> void:
 	_drop_loot()
+	# 血水残迹：留一滩对应变种颜色的体液渍，溅开 → 存留数秒 → 淡出（§11.4.3 击杀反馈）
+	var blood: Color = _blood_color()
+	BloodPool.spawn(get_tree().current_scene, global_position, blood,
+		stats.scale_mult if stats else 1.0)
 	# 击杀爆裂粒子：复制一份留在原地播完（本体带原粒子节点回池）
 	# Boss 放三重爆裂并放大尺寸，做成「高潮收尾」的视觉标点
 	var bursts: int = 3 if is_boss else 1

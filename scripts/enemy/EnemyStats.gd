@@ -11,6 +11,7 @@ extends Resource
 @export var alert_radius: float = 320.0   # 进入即追
 @export var behavior: String = "walk"     # walk / ambush / elite / boss
 @export var tint: Color = Color(1, 1, 1, 1)   # 精灵染色（变种视觉区分）
+@export var blood_color: Color = Color(0, 0, 0, 0)   # 死亡血渍颜色（a=0 = 未配置，回退 tint 调暗）
 @export var scale_mult: float = 1.0            # 精灵缩放倍率（体型区分）
 @export var sprite_texture: Texture2D          # 变种专属贴图（空 = 用场景默认）
 @export var spawn_weight_tier0: float = 1.0    # 难度档 0 出现权重

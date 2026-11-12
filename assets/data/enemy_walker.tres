@@ -13,6 +13,7 @@ attack_power = 8.0
 alert_radius = 320.0
 behavior = "walk"
 tint = Color(1, 1, 1, 1)
+blood_color = Color(0.16, 0.62, 0.55, 1)
 sprite_texture = ExtResource("2_tex")
 scale_mult = 1.0
 spawn_weight_tier0 = 1.0
