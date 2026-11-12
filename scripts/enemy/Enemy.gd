@@ -40,6 +40,9 @@ var _steer_dir: Vector2 = Vector2.ZERO
 var _ambush_state: int = 0
 var _ambush_t: float = 0.0
 var _base_scale: Vector2 = Vector2.ONE * 0.095
+# 分裂孢子体（§11.5 M4）：实例级视觉缩放 + 防递归标记，池化复用必须清零
+var _is_split_child: bool = false
+var _size_mult: float = 1.0
 
 func _ready() -> void:
 	add_to_group("enemy")
@@ -68,13 +71,17 @@ func reset_for_reuse() -> void:
 	_steer_t = 0.0
 	_steer_dir = Vector2.ZERO
 	_base_tint = stats.tint if stats else Color.WHITE
+	_is_split_child = false          # 池化复用：清掉上一只的分裂子体标记
+	_size_mult = 1.0
 	_setup_ambush(stats != null and not stats.is_boss and stats.behavior == "ambush")
 	_apply_visual()
 
 # 刷怪器选种后调用：设定变种参数并按数据应用视觉（染色/体型）
 # hp_mult：Boss 每轮出现按血量倍率递增，避免后期武器成长后秒杀
-func configure(s: EnemyStats, hp_mult: float = 1.0) -> void:
+func configure(s: EnemyStats, hp_mult: float = 1.0, is_split_child: bool = false) -> void:
 	stats = s
+	_is_split_child = is_split_child
+	_size_mult = s.split_size_mult if is_split_child else 1.0
 	is_boss = s.is_boss
 	max_health = s.max_health * hp_mult
 	health = max_health
@@ -109,7 +116,7 @@ func _apply_visual() -> void:
 	var tex: Texture2D = stats.sprite_texture if stats else null
 	if stats:
 		spr.modulate = stats.tint
-		spr.scale = Vector2.ONE * (BASE_SCALE * stats.scale_mult)
+		spr.scale = Vector2.ONE * (BASE_SCALE * stats.scale_mult * _size_mult)
 	else:
 		spr.modulate = Color.WHITE
 		spr.scale = Vector2.ONE * BASE_SCALE
@@ -189,7 +196,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	# 接触掉血（§11.4.3）：贴近玩家且冷却结束才扣一次；冲锋命中额外加成
-	var reach: float = stats.contact_radius if stats else 26.0
+	var reach: float = (stats.contact_radius if stats else 26.0) * _size_mult
 	if global_position.distance_to(_player.global_position) < reach and _contact_cooldown <= 0.0:
 		_contact_cooldown = 0.65 if is_boss else 0.8
 		var dmg: float = stats.attack_power if stats else 8.0
@@ -298,6 +305,13 @@ func _deferred_die() -> void:
 	var spr: Sprite2D = $Sprite
 	DeathBurst.spawn(get_tree().current_scene, global_position, spr.texture,
 		_base_tint, blood, spr.scale.x, stats.scale_mult if stats else 1.0)
+	# 变种行为分支（§11.5 M4）：毒雾孢留雾区 / 分裂孢裂出子体
+	if stats:
+		if stats.behavior == "miasma":
+			PoisonCloud.spawn(get_tree().current_scene, global_position,
+				stats.poison_radius, stats.poison_duration, stats.poison_dps, blood)
+		elif stats.behavior == "split" and not _is_split_child:
+			_spawn_splits()
 	# 击杀爆裂粒子：复制一份留在原地播完（本体带原粒子节点回池）
 	# Boss 放三重爆裂并放大尺寸，做成「高潮收尾」的视觉标点
 	var bursts: int = 3 if is_boss else 1
@@ -318,6 +332,27 @@ func _deferred_die() -> void:
 		pool.release(self)
 	else:
 		queue_free()
+
+# 分裂孢死亡：从池里取 N 只迷你子体（同参数谱、血量与体型按表缩放）。
+# 子体带 _is_split_child 标记，死亡时不再分裂，杜绝同帧指数爆炸；
+# 场上活跃数接近 150 上限时直接放弃分裂，守住性能底线。
+func _spawn_splits() -> void:
+	var alive := 0
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e.get("active"):
+			alive += 1
+	if alive >= 140:
+		return
+	var pool: Node = get_tree().get_first_node_in_group("enemy_pool")
+	if pool == null:
+		return
+	for i in stats.split_count:
+		var child: Node2D = pool.acquire(get_tree().current_scene) as Node2D
+		if child == null:
+			return
+		child.configure(stats, stats.split_hp_mult, true)
+		var a: float = randf() * TAU
+		child.global_position = global_position + Vector2(cos(a), sin(a)) * 30.0
 
 # 死亡掉落：Boss 固定撒一圈晶体 + 1 个医疗包（打完全场唯一补给点）；
 # 杂兵 50% 孢子晶体（加分）；10% 医疗包（仅玩家未满血时才掉，满血不掉避免浪费）。

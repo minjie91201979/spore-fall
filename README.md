@@ -53,6 +53,8 @@ spore-fall/
 | 死亡血渍残迹 | ✅ | 击杀原地留一滩变种专属颜色体液渍（`EnemyStats.blood_color` 数据驱动：青/黄绿/紫/暗紫/洋红）：`BloodPool` 纯 _draw 程序化斑点（主斑+卫星溅点+浓稠内芯，零贴图零粒子），0.16s 溅开 → 3.6s 存留 → 1.1s 淡出自毁；同屏封顶 50（低档 20），Boss 按 scale_mult 2.8 放大 |
 | 走位可摆脱怪群 | ✅ | 碰撞分层：玩家层 2 只撞柱子、敌人层 4 撞柱子+同类、子弹 mask 5——玩家物理上穿过怪群（接触伤害走距离判定保留），怪互撞保持群体阵型不叠点；探针 probe_bullet_layer.gd 验证子弹命中与贴身掉血双链路 |
 | 击杀爆裂演出 | ✅ | `DeathBurst`：本体即时回池、视觉替身留原地播完。阶段A 0.10s 过曝白剪影 + 1.55× 膨胀 + 白色冲击环 → 阶段B 炸成贴图碎片（Atlas 随机区块）+ 血色脓滴四散下坠自旋 → 0.62s 淡出自毁；单 CanvasItem 纯 `_draw` 零粒子/零 Tween 节点，同屏封顶 24，低画质减半碎片，Boss 按 scale_mult 2.8 放大至 19 片 |
+| 毒雾孢 Miasma（§11.5 M4） | ✅ | 死亡原地留毒绿雾区（`PoisonCloud` 纯 _draw 脉动雾团 + 亮绿边界环）：半径 78 / 持续 4s / 10 dps 每 0.5s 结算，按真实时间推进不受 hitstop 拖长，末尾 0.9s 淡出；封顶 12（低档 6）。区域封锁逼玩家走位 |
+| 分裂孢 Splitter（§11.5 M4） | ✅ | 死亡裂出 2 只迷你子体：同参数谱 + 血量 ×0.45 + 体型 ×0.62，子体带防递归标记（死亡不再分裂），活跃数 ≥140 时放弃分裂守住性能；池化复用清标记。`behavior` 数据驱动的第三、四条分支 |
 | 画质档位（§11.6） | ✅ | `Quality` Autoload 三档（低/中/高）：描边 pass 开关、粒子数量比例（1.0/0.7/0.35）、手电光强与半径；HUD 右上按钮实时切换 + `user://settings.cfg` 持久化；手机默认中档、桌面默认高档 |
 | 手机虚拟摇杆可跑 | 🟡 待真机 | 手感参数已按移动端标准调优：死区 0.18 + 全量程重映射、按下弹入/松手淡出、力度可视化、左半屏任意点起杆、FIRE 键滑出不误停；探针 probe_touch.gd 全过，仅剩真机手测 |
 | 同屏 100+ 60fps | ✅ | 实测（Intel UHD 集显、关垂直同步）：100 只 277–297fps / 200 只 162–201fps，p95 帧时间 7.1–12.5ms（60fps 预算 16.6ms）；对象池复用 + 同屏封顶 150 + 避障射线节流 |
@@ -77,6 +79,7 @@ spore-fall/
 
 11. ~~**死亡血渍残迹 + 走位摆脱怪群**（已完成）：`BloodPool` 程序化血渍（变种专属色、溅开→存留→淡出）+ 碰撞分层（玩家穿怪、怪保阵型、子弹照常命中）。~~
 12. ~~**击杀爆裂演出**（已完成）：`DeathBurst` 闪白膨胀+冲击环→贴图碎片+脓滴四散→淡出，池化替身留场播完、本体即时回池。~~
+13. ~~**M4 新变种：毒雾孢 / 分裂孢**（已完成）：agnes-image 图生图（以现有贴图为风格锚点）→ 后处理接入；`behavior` 第三/四条数据驱动分支，死亡留毒雾区 / 裂出防递归迷你子体。~~
 
 ## 品牌资产（assets/icons/）
 
@@ -95,6 +98,7 @@ spore-fall/
 |---|---|
 | `player.png` | `Player.tscn`（BASE_SCALE 0.2） |
 | `enemy_walker/runner/brute/lurker/boss.png` | 各 `enemy_*.tres` 的 `sprite_texture`（Enemy BASE_SCALE 0.19 × 变种 scale_mult） |
+| `enemy_miasma/splitter.png` | 新增 M4 变种专属贴图（同为 512px 图生图 → 256px 透明画布） |
 
 重新生成流程：agnes-image 出 512px 原图存 `build/sprites_raw/` → `Godot --headless --script tools/make_sprites.gd`（白底泛洪剔除 + 主体归一化 210px）→ 自动写回 `assets/characters/`。注意屏幕上环宽 = outline_width(texel) × sprite_scale，换贴图分辨率只需调 scale。
 

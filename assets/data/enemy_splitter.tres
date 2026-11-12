@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_splitter.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "分裂孢 Splitter"
+hearing = 280.0
+move_speed = 118.0
+max_health = 58.0
+attack_power = 9.0
+alert_radius = 320.0
+behavior = "split"
+tint = Color(1, 1, 1, 1)
+blood_color = Color(0.72, 0.22, 0.12, 1)
+sprite_texture = ExtResource("2_tex")
+scale_mult = 1.1
+spawn_weight_tier0 = 0.15
+spawn_weight_per_tier = 0.1
+contact_radius = 28.0
+score_value = 20
+split_count = 2
+split_hp_mult = 0.45
+split_size_mult = 0.62

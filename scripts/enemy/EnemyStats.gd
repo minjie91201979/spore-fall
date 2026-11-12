@@ -17,6 +17,16 @@ extends Resource
 @export var spawn_weight_tier0: float = 1.0    # 难度档 0 出现权重
 @export var spawn_weight_per_tier: float = 0.0 # 每升一档增加的权重
 
+# ---- 行为分支参数（§11.5 M4，配合 behavior 字段）----
+# miasma：死亡原地留毒雾，按 dps 持续伤害，区域封锁逼玩家走位
+@export var poison_radius: float = 78.0
+@export var poison_duration: float = 4.0
+@export var poison_dps: float = 10.0
+# split：死亡裂出迷你子体（子体不再分裂，杜绝指数爆炸）
+@export var split_count: int = 2
+@export var split_hp_mult: float = 0.45
+@export var split_size_mult: float = 0.62
+
 # ---- 精英 / Boss（§11.4.4 高潮点）----
 @export var is_boss: bool = false          # true = 由计时事件召唤，不进随机选种池
 @export var score_value: int = 10          # 击杀得分（Boss 远高于杂兵）

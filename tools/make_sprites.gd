@@ -21,6 +21,8 @@ const JOBS := {
 	"lurker.png": "enemy_lurker.png",
 	"boss.png": "enemy_boss.png",
 	"player.png": "player.png",
+	"miasma.png": "enemy_miasma.png",
+	"splitter.png": "enemy_splitter.png",
 }
 
 func _initialize() -> void:
@@ -29,6 +31,9 @@ func _initialize() -> void:
 		if img == null:
 			print("MISSING ", src)
 			continue
+		# 源图可能是 RGB8（无 alpha），blend_rect 要求与画布同为 RGBA8，否则静默跳过产出全透明图
+		if img.get_format() != Image.FORMAT_RGBA8:
+			img.convert(Image.FORMAT_RGBA8)
 		_remove_white_bg(img)
 		var rect := _content_rect(img)
 		if rect.size.x <= 0 or rect.size.y <= 0:
