@@ -82,10 +82,11 @@ var _ambient_idx: int = 0
 func start_ambient(name: String) -> void:
 	if not STREAMS.has(name):
 		return
-	var p = _pick_ambient()
-	p.stream = STREAMS[name]
+	var p := _pick_ambient()
+	var s := STREAMS[name]
+	s.loop = true
+	p.stream = s
 	p.volume_db = VOLUMES.get(name, -20.0)
-	p.loop = true
 	p.play(0.0)
 
 func stop_all_ambient() -> void:
@@ -98,7 +99,7 @@ func _pick_ambient() -> AudioStreamPlayer:
 			var a := AudioStreamPlayer.new()
 			add_child(a)
 			_ambient_streamers.append(a)
-	var p = _ambient_streamers[_ambient_idx]
+	var p := _ambient_streamers[_ambient_idx]
 	_ambient_idx = (_ambient_idx + 1) % len(_ambient_streamers)
 	return p
 
