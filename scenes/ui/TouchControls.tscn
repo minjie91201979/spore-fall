@@ -54,6 +54,25 @@ visible = false
 texture = ExtResource("3_knob")
 visible = false
 
+[node name="InteractButton" type="Button" parent="."]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -210.0
+offset_right = -280.0
+offset_bottom = -90.0
+grow_horizontal = 0
+grow_vertical = 0
+focus_mode = 0
+theme_override_colors/font_color = Color(0.85, 0.97, 0.95, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("fire_normal")
+theme_override_styles/hover = SubResource("fire_hover")
+theme_override_styles/pressed = SubResource("fire_pressed")
+text = "互动"
+
 [node name="AttackButton" type="Button" parent="."]
 anchor_left = 1.0
 anchor_top = 1.0

@@ -57,8 +57,13 @@ func play(sound_name: String, pitch: float = 1.0, volume_offset: float = 0.0) ->
 	p.play()
 
 func start_bgm() -> void:
+	# 剧情会把循环压低，回到生存时恢复原来的音量
+	_bgm.volume_db = -14.0
 	if not _bgm.playing:
 		_bgm.play()
+
+func set_bgm_db(db: float) -> void:
+	_bgm.volume_db = db
 
 func stop_bgm() -> void:
 	_bgm.stop()

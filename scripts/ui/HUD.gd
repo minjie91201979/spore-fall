@@ -9,17 +9,34 @@ extends Control
 @onready var quality_button: Button = $QualityButton
 @onready var toast_label: Label = $ToastLabel
 var _toast_tw: Tween
+var _objective: Label
+var _dry: float = 0.0
+var _ammo_pos := Vector2(20, 134)
+var _weapon_pos := Vector2(20, 172)
 
 func _ready() -> void:
 	EventBus.player_hit.connect(_on_player_hit)
 	EventBus.quality_changed.connect(_on_quality_changed)
 	EventBus.achievement_unlocked.connect(_on_achievement)
+	EventBus.weapon_dry_fired.connect(_on_dry_fire)
+	EventBus.pickup_collected.connect(_on_pickup)
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
 	GameState.upgrade_applied.connect(_on_upgrade_applied)
 	GameState.game_over.connect(_on_game_over)
 	GameState.weapon_acquired.connect(_on_weapon_acquired)
 	quality_button.pressed.connect(_on_quality_pressed)
 	_update_quality_text()
+	add_to_group("hud")
+	_ammo_pos = ammo_label.position
+	_weapon_pos = weapon_label.position
+	_objective = Label.new()
+	_objective.name = "ObjectiveLabel"
+	_objective.position = Vector2(20, 20)
+	_objective.add_theme_font_size_override("font_size", 18)
+	_objective.add_theme_color_override("font_color", Color(0.7, 0.95, 0.9))
+	_objective.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_objective.visible = false
+	add_child(_objective)
 
 func _on_quality_pressed() -> void:
 	Quality.cycle()
@@ -81,18 +98,52 @@ func _on_weapon_leveled(_lv: int) -> void:
 	t.tween_property(weapon_label, "modulate", Color.WHITE, 0.6)
 	t.tween_property(weapon_label, "scale", Vector2.ONE, 0.3)
 
-func _process(_delta: float) -> void:
+func _on_dry_fire() -> void:
+	_dry = 0.28
+
+func _on_pickup(type: String, amount: int) -> void:
+	if not GameState.is_story():
+		return
+	if type == "ammo":
+		_show_toast("弹药 +%d" % amount, Color(0.95, 0.82, 0.4))
+
+func show_story_toast(text: String) -> void:
+	_show_toast(text, Color(0.75, 0.95, 0.9))
+
+func _process(delta: float) -> void:
+	if _dry > 0.0:
+		_dry -= delta
+		ammo_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+	else:
+		ammo_label.remove_theme_color_override("font_color")
 	if not GameState.is_running:
 		return
-	score_label.text = "SCORE %06d" % GameState.score
-	combo_label.text = "COMBO x%d" % GameState.combo
-	time_label.text = "%.1f" % GameState.survived_time
+	var story := GameState.is_story()
+	score_label.visible = not story
+	combo_label.visible = not story
+	time_label.visible = not story
+	if _objective:
+		_objective.visible = story and GameState.objective_text != ""
+		_objective.text = GameState.objective_text
+	if story:
+		ammo_label.position = Vector2(20, 58)
+		weapon_label.position = Vector2(20, 96)
+	else:
+		ammo_label.position = _ammo_pos
+		weapon_label.position = _weapon_pos
+	if not story:
+		score_label.text = "SCORE %06d" % GameState.score
+		combo_label.text = "COMBO x%d" % GameState.combo
+		time_label.text = "%.1f" % GameState.survived_time
 	var player = get_tree().get_first_node_in_group("player")
 	if player and "ammo" in player:
 		if player.get("infinite_ammo"):
 			ammo_label.text = "AMMO ∞"
 		else:
 			ammo_label.text = "AMMO %02d" % player.ammo
-	weapon_label.text = "WEAPON LV%d  %d/%d  ·  BUILD %d" % [
-		GameState.weapon_level, GameState.crystals, GameState.crystals_for_next(),
-		GameState.upgrades_taken]
+	if story:
+		weapon_label.text = WeaponDB.name_of(GameState.current_weapon)
+	else:
+		weapon_label.text = "WEAPON LV%d  %d/%d  ·  BUILD %d" % [
+			GameState.weapon_level, GameState.crystals, GameState.crystals_for_next(),
+			GameState.upgrades_taken]

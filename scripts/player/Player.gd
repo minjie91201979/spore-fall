@@ -8,10 +8,14 @@ const SPEED: float = 220.0
 @export var max_health: float = 100.0
 @export var bullet_scene: PackedScene
 @export var infinite_ammo: bool = true   # 垂直切片阶段弹药无限（关掉即恢复消耗制）
+# 生存竞技场把人夹在地面内。剧情关用墙，不再套这圈，避免辅道被切掉。
+@export var arena_clamp: bool = true
 
 var health: float = 100.0
 var ammo: int = 20
 var is_dead: bool = false
+# 0 可行动 / 1 只能走不能开火 / 2 过场锁定。生存默认 0，不改变手感。
+var control_mode: int = 0
 var _last_dir: Vector2 = Vector2.RIGHT
 var _fire_cd: float = 0.0
 var _health_base: float = 100.0   # @export 基准值，「厚壁」卡只叠加在它之上
@@ -45,6 +49,10 @@ func _physics_process(_delta: float) -> void:
 		return
 	if _fire_cd > 0.0:
 		_fire_cd -= _delta
+	if control_mode >= 2:
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
 	var dir := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	dir += TouchInput.move_vector
 	if dir.length() > 1.0:
@@ -55,12 +63,13 @@ func _physics_process(_delta: float) -> void:
 		flashlight.rotation = dir.angle()
 	move_and_slide()
 	# 限制在竞技场范围内，避免走出地面看到灰色虚空
-	global_position.x = clampf(global_position.x, -880.0, 880.0)
-	global_position.y = clampf(global_position.y, -880.0, 880.0)
+	if arena_clamp:
+		global_position.x = clampf(global_position.x, -880.0, 880.0)
+		global_position.y = clampf(global_position.y, -880.0, 880.0)
 	_tick_poison(_delta)
 	# 按住空格与触屏 FIRE 同一条连发：每物理帧请求一次，真正的间隔在 _attack。
 	# 不靠操作系统的按键连发，否则第一枪之后会空出一截才开始连射。
-	if not is_dead and Input.is_action_pressed("attack"):
+	if control_mode == 0 and Input.is_action_pressed("attack"):
 		fire()
 
 # 单独抽出来便于探针断言「轻足」卡真的改了移速，而不是只改了字典
@@ -76,7 +85,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # 公开的开火入口：键盘（attack 动作）与移动端 FIRE 按钮共用
 func fire() -> void:
-	if is_dead:
+	if is_dead or control_mode != 0:
 		return
 	_attack()
 
@@ -84,9 +93,15 @@ func _attack() -> void:
 	if _fire_cd > 0.0:
 		return   # 统一冷却：键盘 echo / 触屏连点 / 自动连发都走这一个闸门
 	var def: Dictionary = WeaponDB.get_def(GameState.current_weapon)
-	_fire_cd = maxf(0.045, fire_interval * float(def.interval_mult))
 	if not infinite_ammo and ammo <= 0:
+		# 空仓也吃冷却，避免按住空格每帧刷一声
+		_fire_cd = 0.28
+		Sfx.play("shoot", 1.8, -18.0)
+		EventBus.weapon_dry_fired.emit()
 		return
+	_fire_cd = maxf(0.045, fire_interval * float(def.interval_mult))
+	if not infinite_ammo:
+		ammo -= 1
 	# 开火不做 hitstop（会拖慢全局时间轴），只给轻微屏震做反馈
 	Juice.add_trauma(0.08)
 	Sfx.play(String(def.sfx), float(def.sfx_pitch))
@@ -230,7 +245,9 @@ func _die() -> void:
 	if is_dead:
 		return
 	is_dead = true
-	GameState.end_run()
+	# 剧情不走生存结算。end_run 仍在演出开始时调用，结算页的等待节奏不变。
+	if not GameState.is_story():
+		GameState.end_run()
 	set_physics_process(false)
 	outline.visible = false   # 描边是独立 pass，不吃 modulate 淡出，直接关掉防残影
 	# 死亡演出：慢动作 + 镜头推近 + 玩家淡出（tween 用真实时间，不受 time_scale 影响）
@@ -247,4 +264,8 @@ func _die() -> void:
 		tw.tween_property(cam, "zoom", Vector2(1.14, 1.14), 0.62).set_ease(Tween.EASE_OUT)
 	await get_tree().create_timer(0.68, true, false, true).timeout
 	Engine.time_scale = 1.0
+	if not is_inside_tree():
+		return
 	visible = false
+	if GameState.is_story():
+		GameState.fail_story()

@@ -9,6 +9,14 @@ signal upgrade_ready(choices: Array)
 signal upgrade_applied(id: String)
 signal weapon_acquired(id: String)   # 捡到新武器：武器栏加格子并自动切换
 signal weapon_switched(id: String)   # 切换当前武器：Player / 武器栏 / HUD 各自刷新
+signal story_failed                  # 剧情倒下：不写最高分、不写生涯
+
+# 生存与剧情共用这一份战斗状态，但结算路径分开。
+# 生存才走 start_run / end_run；剧情走 begin_story / fail_story。
+const MODE_SURVIVAL := "survival"
+const MODE_STORY := "story"
+var run_mode: String = MODE_SURVIVAL
+var objective_text: String = ""
 
 var survived_time: float = 0.0
 var score: int = 0
@@ -118,7 +126,24 @@ func switch_weapon(id: String) -> void:
 	Sfx.play("pickup", 1.2, -4.0)
 
 # ---------- 局状态 ----------
+func is_story() -> bool:
+	return run_mode == MODE_STORY
+
 func start_run() -> void:
+	# 生存入口必须把模式拨回来，避免上一场剧情的有限弹药语义残留到 Arena
+	run_mode = MODE_SURVIVAL
+	objective_text = ""
+	_reset_combat_state()
+	is_running = true
+	Career.reset_run()
+
+# 剧情会话：清掉生存 Build，但不碰生涯、不记一局、不重置最高分。
+func begin_story() -> void:
+	run_mode = MODE_STORY
+	_reset_combat_state()
+	is_running = true
+
+func _reset_combat_state() -> void:
 	survived_time = 0.0
 	score = 0
 	kill_count = 0
@@ -134,11 +159,18 @@ func start_run() -> void:
 	mods = default_mods()
 	taken_upgrades.clear()
 	# 上一局若在选卡界面中退出（重载/返回标题），别把暂停状态带进新一局
-	get_tree().paused = false
+	if is_inside_tree():
+		get_tree().paused = false
 	boss_active = false
 	bosses_spawned = 0
-	is_running = true
-	Career.reset_run()
+
+# 剧情死亡：只通知界面回安全屋。禁止写 save.cfg / career.cfg。
+func fail_story() -> void:
+	if not is_story():
+		return
+	is_running = false
+	boss_active = false
+	story_failed.emit()
 
 func end_run() -> void:
 	is_running = false
@@ -165,6 +197,9 @@ func _save_best() -> void:
 
 func register_kill(points: int = 10) -> void:
 	kill_count += 1
+	# 剧情击杀只留给章节卡小字，不进分数、连杀和生涯
+	if is_story():
+		return
 	score += points
 	combo += 1
 	combo_timer = 2.5
@@ -179,6 +214,9 @@ func crystals_for_next() -> int:
 
 func add_crystal() -> void:
 	crystals += 1
+	# 剧情里晶体只当安全屋货币，关内不暂停、不弹三选一、不抬武器等级
+	if is_story():
+		return
 	if crystals < crystals_for_next():
 		return
 	crystals = 0
@@ -223,6 +261,9 @@ func _process(delta: float) -> void:
 	if not is_running:
 		return
 	survived_time += delta
+	# 剧情不计难度档，也不把存活时间送进生涯成就
+	if is_story():
+		return
 	_career_tick += delta
 	if _career_tick >= 1.0:
 		_career_tick = 0.0

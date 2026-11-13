@@ -15,6 +15,7 @@ const FADE_OUT := 0.12
 @onready var joy_base: Sprite2D = $Joystick/Base
 @onready var joy_knob: Sprite2D = $Joystick/Knob
 @onready var attack_btn: Button = $AttackButton
+@onready var interact_btn: Button = $InteractButton
 
 var _joy_active: bool = false
 var _joy_id: int = -2            # 触摸指针 index；鼠标用 -1
@@ -22,6 +23,7 @@ var _joy_origin: Vector2 = Vector2.ZERO
 var _attack_held: bool = false
 
 func _ready() -> void:
+	add_to_group("touch_controls")
 	# 场景重载（死亡重开）时清掉上一局按住的移动量：
 	# TouchInput 是 Autoload，不会随场景销毁；若玩家死时正按着摇杆，
 	# 松手事件会丢给已销毁的节点，不清就会「复活后自己往一个方向走」。
@@ -30,6 +32,8 @@ func _ready() -> void:
 	joy_knob.visible = false
 	attack_btn.button_down.connect(_on_attack_down)
 	attack_btn.button_up.connect(_on_attack_up)
+	interact_btn.visible = false
+	interact_btn.pressed.connect(_on_interact)
 
 # 升级弹窗会暂停整棵树，暂停期间手指松开的事件可能丢给已停处理的节点。
 # 关闭弹窗前由 UpgradeUI 调这里统一复位，否则恢复瞬间角色会「自己走」或 FIRE 自动连发。
@@ -57,10 +61,19 @@ func _fire() -> void:
 	if p and p.has_method("fire"):
 		p.fire()
 
+func _on_interact() -> void:
+	var director := get_tree().get_first_node_in_group("story_director")
+	if director and director.has_method("try_interact"):
+		director.try_interact()
+
 func _process(_delta: float) -> void:
 	# 射速由 Player._attack 的统一冷却控制，这里每帧请求即可
 	if _attack_held:
 		_fire()
+	# 生存局没有剧情导演，互动键保持隐藏，不占 FIRE 旁边的位置
+	var director := get_tree().get_first_node_in_group("story_director")
+	var show_interact := director != null and bool(director.get("interact_available"))
+	interact_btn.visible = show_interact
 
 # ---------------- 摇杆 ----------------
 func _unhandled_input(event: InputEvent) -> void:
