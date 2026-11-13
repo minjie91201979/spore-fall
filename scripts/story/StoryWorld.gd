@@ -39,6 +39,18 @@ static func add_wall(parent: Node2D, center: Vector2, size: Vector2, color: Colo
 	])
 	vis.color = color
 	body.add_child(vis)
+	# 亮色描边：墙体与暗色地面同亮度时分不清边界，统一加高对比轮廓线
+	var edge := Line2D.new()
+	var pts := PackedVector2Array([
+		Vector2(-h.x, -h.y), Vector2(h.x, -h.y),
+		Vector2(h.x, h.y), Vector2(-h.x, h.y),
+		Vector2(-h.x, -h.y),
+	])
+	edge.points = pts
+	edge.width = 4.0
+	edge.default_color = Color(0.74, 0.84, 0.88, 0.9)   # 冷调亮青白，暗景下依然醒目
+	edge.z_index = 1
+	body.add_child(edge)
 	parent.add_child(body)
 	return body
 
