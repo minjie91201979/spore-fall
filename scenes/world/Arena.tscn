@@ -63,7 +63,7 @@ pool_group = "enemy_pool"
 pooled_scene = ExtResource("4_enemy")
 prefill = 50
 
-[node name="Pillar" type="StaticBody2D" parent="."]
+[node name="Pillar" type="StaticBody2D" parent="." groups=["obstacle"]]
 position = Vector2(380, -640)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Pillar"]

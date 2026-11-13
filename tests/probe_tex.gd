@@ -21,7 +21,9 @@ func _ready() -> void:
 	await get_tree().create_timer(0.5).timeout
 	var vp := get_viewport().get_visible_rect().size
 	var shot: Image = get_viewport().get_texture().get_image()
-	shot.save_png("C:/Users/musou/Desktop/object/spore-fall/build/tex_probe.png")
+	var shot_dir := ProjectSettings.globalize_path("res://build")
+	DirAccess.make_dir_recursive_absolute(shot_dir)
+	shot.save_png(shot_dir.path_join("tex_probe.png"))
 	var c1: Color = shot.get_pixel(int(vp.x/2) - 150, int(vp.y/2))
 	var c2: Color = shot.get_pixel(int(vp.x/2) + 150, int(vp.y/2))
 	print("PROBE ground_tex_pixel=%s green_tex_pixel=%s" % [c1, c2])

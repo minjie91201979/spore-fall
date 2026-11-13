@@ -25,6 +25,16 @@ func _ready() -> void:
 	await get_tree().process_frame
 	print("PROBE a.gpos=%s b.gpos=%s" % [a.global_position, b.global_position])
 	await get_tree().create_timer(0.3).timeout
-	get_viewport().get_texture().get_image().save_png("C:/Users/musou/Desktop/object/spore-fall/build/giant_probe.png")
+	_save_shot("giant_probe.png")
 	print("PROBE DONE")
 	get_tree().quit(0)
+
+func _save_shot(file_name: String) -> void:
+	var dir := ProjectSettings.globalize_path("res://build")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var tex := get_viewport().get_texture()
+	if tex == null:
+		return
+	var img := tex.get_image()
+	if img:
+		img.save_png(dir.path_join(file_name))

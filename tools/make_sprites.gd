@@ -23,11 +23,17 @@ const JOBS := {
 	"player.png": "player.png",
 	"miasma.png": "enemy_miasma.png",
 	"splitter.png": "enemy_splitter.png",
+	"spitter.png": "enemy_spitter.png",
+	"sprayer.png": "enemy_sprayer.png",
 }
 
 func _initialize() -> void:
 	for src in JOBS:
-		var img: Image = Image.load_from_file(ProjectSettings.globalize_path(SRC_DIR + src))
+		var src_path := SRC_DIR + src
+		if not FileAccess.file_exists(src_path):
+			print("MISSING ", src)
+			continue
+		var img: Image = Image.load_from_file(ProjectSettings.globalize_path(src_path))
 		if img == null:
 			print("MISSING ", src)
 			continue

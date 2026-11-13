@@ -58,6 +58,10 @@ func _physics_process(_delta: float) -> void:
 	global_position.x = clampf(global_position.x, -880.0, 880.0)
 	global_position.y = clampf(global_position.y, -880.0, 880.0)
 	_tick_poison(_delta)
+	# 按住空格与触屏 FIRE 同一条连发：每物理帧请求一次，真正的间隔在 _attack。
+	# 不靠操作系统的按键连发，否则第一枪之后会空出一截才开始连射。
+	if not is_dead and Input.is_action_pressed("attack"):
+		fire()
 
 # 单独抽出来便于探针断言「轻足」卡真的改了移速，而不是只改了字典
 func current_speed() -> float:
@@ -66,7 +70,8 @@ func current_speed() -> float:
 func _unhandled_input(event: InputEvent) -> void:
 	if is_dead:
 		return
-	if event.is_action_pressed("attack"):
+	# 按下那一帧先打出去；echo 留给上面的按住检测，避免和系统连发叠两套节奏
+	if event.is_action_pressed("attack") and not event.is_echo():
 		fire()
 
 # 公开的开火入口：键盘（attack 动作）与移动端 FIRE 按钮共用
@@ -92,11 +97,13 @@ func _attack() -> void:
 		var auto_dir := _auto_aim_dir()
 		if auto_dir != Vector2.ZERO:
 			aim_base = auto_dir
-	# 弹丸数：固定弹丸的武器（霰弹 6 发）用定义值，成长型武器（沙漠飞鹰）用等级派生
+	# 弹丸数：成长型武器（pellets<=0）的 projectile_count 已含「分裂射」。
+	# 固定弹丸武器（霰弹 6、喷火 1）不走等级弹道，只在定义值上加一次。两条路都不能再加一遍。
 	var pellets: int = int(def.pellets)
 	if pellets <= 0:
 		pellets = projectile_count
-	pellets += int(GameState.mods.projectiles)
+	else:
+		pellets += int(GameState.mods.projectiles)
 	# 对象池取子弹（§11.9），池缺失时退回 instantiate 兜底
 	var pool: Node = get_tree().get_first_node_in_group("bullet_pool")
 	# 多弹道散射：每发间开 def.spread 弧度，奇数居中偶数对称
@@ -165,6 +172,7 @@ func _apply_weapon_level() -> void:
 	bullet_damage = 12.0 * (1.0 + 0.45 * (lv - 1)) * float(m.damage)
 	# 下限保护：射速卡叠满 + 高武器等级时不许把冷却压到 0，避免一帧多发炸物理
 	fire_interval = maxf(0.045, (0.22 * pow(0.88, lv - 1)) / float(m.fire_rate))
+	# 等级 3/6 各多一条弹道，分裂射加区只折进这里一次；_attack 不要再加。
 	projectile_count = 1 + (1 if lv >= 3 else 0) + (1 if lv >= 6 else 0) + int(m.projectiles)
 	max_health = _health_base + float(m.max_health)
 
