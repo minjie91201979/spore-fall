@@ -54,9 +54,22 @@ func _ready() -> void:
 	panel.add_child(close_btn)
 	visible = false
 
-func open_file(title: String, body: String) -> void:
+func open_file(title: String, body: String, marks: PackedStringArray = PackedStringArray()) -> void:
 	_title.text = title
-	_body.text = body
+	var shown := body
+	if marks.is_empty():
+		_body.bbcode_enabled = false
+		_body.text = shown
+	else:
+		_body.bbcode_enabled = true
+		for mark in marks:
+			if mark == "":
+				continue
+			if shown.contains(mark):
+				shown = shown.replace(mark, "[color=#7ef0e0]%s[/color]" % mark)
+			else:
+				shown += "\n\n[color=#7ef0e0]%s[/color]" % mark
+		_body.text = shown
 	active = true
 	visible = true
 
