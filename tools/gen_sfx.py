@@ -153,29 +153,56 @@ x = (low + noise_floor) * 0.6
 x = np.convolve(x, np.ones(50)/50.0, mode="same")
 save("amb_hvac", x * 0.45, outdir)
 
-# Boss 逼近低频嗡鸣（22050Hz 4s 循环基底）
-n = int(SR * 4.0)
-t = np.arange(n) / SR
-m1 = noise(n, 8) * env_exp(n, 200)
-m2 = noise(n, 12) * env_exp(n, 160)
-m3 = 0.5 * np.sin(2*np.pi*35*t) * env_exp(n, 300)
-x = (m1 + m2 + m3) * 0.55
-save("amb_boss", x * 0.9, outdir)
+# ---- UI / 剧情反馈音效 ----
 
-# 菌林低语 4s 长底噪（极轻呼吸节奏）
-n = int(SR * 4.0)
+# UI blip（对话翻页/交互确认）：极短软 blip
+n = int(SR * 0.07)
 t = np.arange(n) / SR
-hiss = noise(n, 6)
-env_shape = 0.7 + 0.3 * np.sin(2*np.pi*0.4*t)
-x = hiss * env_shape
-x = np.convolve(x, np.ones(30)/30.0, mode="same")
-save("amb_forest", x * 0.35, outdir)
+f = 920.0 * np.exp(-t * 6.0) + 620.0
+phase = 2 * np.pi * np.cumsum(f) / SR
+x = 0.4 * np.sin(phase) * env_exp(n, 45)
+save("ui_blip", x * 0.5, outdir)
 
-# 正压库机器嗡嗡声 4s 循环
-n = int(SR * 4.0)
+# Boss 降临警报（alarm）：两声低音号角下滑，压迫感
+n = int(SR * 1.4)
 t = np.arange(n) / SR
-low = 0.35*np.sin(2*np.pi*55*t) + 0.18*np.sin(2*np.pi*110*t) + 0.08*np.sin(2*np.pi*220*t)
-noise_floor = noise(n, 3) * 0.12
-x = (low + noise_floor) * 0.6
-x = np.convolve(x, np.ones(50)/50.0, mode="same")
-save("amb_hvac", x * 0.45, outdir)
+x = np.zeros(n)
+for i, f0 in enumerate([196.0, 147.0]):   # G3 → D3 两声
+    seg0 = int(SR * 0.65 * i)
+    seg_n = n - seg0
+    tt = t[:seg_n]
+    ff = f0 * (1.0 + 0.05 * np.exp(-tt * 2.0))   # 起音略高再下滑
+    ph = 2 * np.pi * np.cumsum(ff) / SR
+    saw = 2 * ((ph / (2 * np.pi)) % 1) - 1
+    x[seg0:] += (0.45 * np.sin(ph) + 0.15 * saw) * env_exp(seg_n, 4.5)
+save("alarm", x * 0.7, outdir)
+
+# 倒计时滴答（tick）：极短高频 click，撤离读秒用
+n = int(SR * 0.05)
+t = np.arange(n) / SR
+x = np.sign(np.sin(2 * np.pi * 1300 * t)) * env_exp(n, 160) * 0.3
+x += 0.2 * noise(n, 9) * env_exp(n, 300)
+save("tick", x * 0.6, outdir)
+
+# 死亡（death）：低音下滑 drones + 噪声潮，剧情失败葬送感
+n = int(SR * 1.8)
+t = np.arange(n) / SR
+f = 130.0 * np.exp(-t * 1.2) + 45.0
+ph = 2 * np.pi * np.cumsum(f) / SR
+drone = 0.4 * np.sin(ph) + 0.2 * np.sin(2 * np.pi * f * 1.5 * t)
+wash = noise(n, 10) * env_exp(n, 2.2)
+wash = np.convolve(wash, np.ones(40) / 40.0, mode="same")
+x = (drone * env_exp(n, 1.6) + 0.35 * wash) * (1.0 - np.exp(-t * 8.0))  # 起音软化
+save("death", x * 0.7, outdir)
+
+# Boss 击杀（boss_down）：大爆炸 = 深扫频轰 + 噪声浪 + 次低音锤
+n = int(SR * 1.2)
+t = np.arange(n) / SR
+f = 180.0 * np.exp(-t * 5.0) + 38.0
+ph = 2 * np.pi * np.cumsum(f) / SR
+boom = np.sin(ph) * env_exp(n, 6)
+burst = noise(n, 11) * env_exp(n, 14)
+burst = np.convolve(burst, np.ones(24) / 24.0, mode="same")
+sub = 0.5 * np.sin(2 * np.pi * 55.0 * t) * env_exp(n, 9)
+x = (boom * 1.0 + burst * 0.8 + sub) * 0.8
+save("boss_down", x * 0.8, outdir)

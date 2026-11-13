@@ -231,6 +231,7 @@ func _on_story_failed() -> void:
 	gameplay_unlocked = false
 	if player:
 		player.control_mode = 2
+	Sfx.play("death")
 	death.present()
 
 func _on_death_safehouse() -> void:

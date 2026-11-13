@@ -69,6 +69,7 @@ func _on_difficulty_changed(tier: int) -> void:
 	tier_label.text = "TIER %s" % ["I", "II", "III", "IV"][min(tier, 3)]
 	tier_label.add_theme_color_override("font_color", color)
 func _on_boss_spawned(_name: String, _max_hp: float) -> void:
+	Sfx.play("alarm")
 	boss_warn.modulate.a = 0.0
 	boss_warn.visible = true
 	var tw := create_tween()

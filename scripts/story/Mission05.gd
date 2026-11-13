@@ -24,6 +24,7 @@ var _boss_spawned: bool = false
 var _boss_down: bool = false
 var _burning: bool = false
 var _burn_t: float = 0.0
+var _last_tick: int = -1
 var _evacuated: bool = false
 var _token: int = 0
 
@@ -73,6 +74,10 @@ func _process(delta: float) -> void:
 	if _burning:
 		_burn_t -= delta
 		GameState.objective_text = "目标　撤离到上行口　·　%.0f 秒" % maxf(0.0, _burn_t)
+		var tick_now := floori(_burn_t)
+		if tick_now != _last_tick:
+			_last_tick = tick_now
+			Sfx.play("tick", 1.0 + clampf(1.0 - _burn_t / BURN_SECONDS, 0.0, 1.0) * 0.35)
 		if _burn_t <= 0.0:
 			_fail_burn()
 		elif pos.x < -700.0 and absf(pos.y - 150.0) < 90.0:
@@ -122,6 +127,7 @@ func _start_burn() -> void:
 		return
 	_burning = true
 	_burn_t = BURN_SECONDS
+	_last_tick = -1
 	_session.gameplay_unlocked = false
 	_player.control_mode = 2
 	_token += 1

@@ -514,7 +514,7 @@ func _die() -> void:
 	if is_boss:
 		GameState.boss_active = false
 		Juice.add_trauma(0.95)
-		Sfx.play("hurt", 0.4, 4.0)
+		Sfx.play("boss_down")
 		EventBus.boss_defeated.emit(stats.display_name if stats else "ELITE")
 	else:
 		Sfx.play("kill")

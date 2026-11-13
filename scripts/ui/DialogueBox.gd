@@ -78,6 +78,7 @@ func _show_current() -> void:
 	_speaker.text = str(entry.get("speaker", ""))
 	_body.text = str(entry.get("text", ""))
 	_panel.visible = true
+	Sfx.play("ui_blip", randf_range(0.92, 1.08))
 	line_shown.emit(entry)
 
 func _input(event: InputEvent) -> void:
