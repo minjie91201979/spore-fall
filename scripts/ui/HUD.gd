@@ -10,6 +10,7 @@ extends Control
 @onready var toast_label: Label = $ToastLabel
 var _toast_tw: Tween
 var _objective: Label
+var _keys: Label
 var _dry: float = 0.0
 var _ammo_pos := Vector2(20, 134)
 var _weapon_pos := Vector2(20, 172)
@@ -37,6 +38,14 @@ func _ready() -> void:
 	_objective.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_objective.visible = false
 	add_child(_objective)
+	_keys = Label.new()
+	_keys.name = "KeyLabel"
+	_keys.position = Vector2(420, 20)
+	_keys.add_theme_font_size_override("font_size", 14)
+	_keys.add_theme_color_override("font_color", Color(0.78, 0.86, 0.55))
+	_keys.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_keys.visible = false
+	add_child(_keys)
 
 func _on_quality_pressed() -> void:
 	Quality.cycle()
@@ -49,7 +58,10 @@ func _update_quality_text() -> void:
 
 func _on_weapon_acquired(id: String) -> void:
 	# 捡到新武器：金色 toast + 武器栏自动加格子并切换
-	_show_toast("获得新武器：%s" % WeaponDB.name_of(id), Color(1.0, 0.85, 0.3))
+	if GameState.is_story():
+		_show_toast("获得武器　%s" % WeaponDB.name_of(id), Color(1.0, 0.85, 0.3))
+	else:
+		_show_toast("获得新武器：%s" % WeaponDB.name_of(id), Color(1.0, 0.85, 0.3))
 
 
 func _on_game_over(_score: int, _time: float) -> void:
@@ -125,6 +137,15 @@ func _process(delta: float) -> void:
 	if _objective:
 		_objective.visible = story and GameState.objective_text != ""
 		_objective.text = GameState.objective_text
+	if _keys:
+		# 运行时再取剧情存档，避免 HUD 在 Autoload 注册前编译依赖 StoryState。
+		var keys := ""
+		if story:
+			var story_state := get_node_or_null("/root/StoryState")
+			if story_state:
+				keys = str(story_state.get("key_text"))
+		_keys.visible = story and keys != ""
+		_keys.text = keys
 	if story:
 		ammo_label.position = Vector2(20, 58)
 		weapon_label.position = Vector2(20, 96)

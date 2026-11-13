@@ -1,5 +1,6 @@
 extends Control
-# 剧情选章。这一期只有序章可进，任务一到五保持锁定文案。
+const StoryCopy = preload("res://scripts/story/StoryCopy.gd")
+# 剧情选章。序章和任务一到三按存档解锁，任务四、五保持锁定文案。
 
 var _confirm: Control
 
@@ -15,21 +16,19 @@ func _ready() -> void:
 	cont.pressed.connect(_continue)
 	box.add_child(cont)
 	for chapter in StoryText.CHAPTERS:
-		var unlocked: bool = str(chapter.id) == "prologue"
-		var title := str(chapter.title)
-		if unlocked and StoryState.prologue_complete:
+		var id := str(chapter.id)
+		var unlocked := StoryState.chapter_unlocked(id)
+		var title := str(chapter.title) if unlocked else str(chapter.locked)
+		if unlocked and StoryState.mission_done(id):
 			title += "　已完成"
-		elif not unlocked:
-			title = str(chapter.locked)
 		var btn := MenuChrome.ghost_button(title)
 		btn.disabled = not unlocked
 		if unlocked:
-			btn.pressed.connect(_play_prologue)
+			btn.pressed.connect(_play_chapter.bind(id))
 		box.add_child(btn)
-	if StoryState.prologue_complete:
+	box.add_child(MenuChrome.label(_blurb(), 12, MenuChrome.DIM))
+	if StoryState.prologue_complete or StoryState.missions_cleared() > 0:
 		box.add_child(MenuChrome.label("重玩不会覆盖你的主存档", 12, MenuChrome.DIM))
-	else:
-		box.add_child(MenuChrome.label("沿黄漆辅道抵达第3检疫所正压库并进入。", 12, MenuChrome.DIM))
 	var restart := MenuChrome.ghost_button("从 头 开 始")
 	restart.pressed.connect(_ask_clear)
 	box.add_child(restart)
@@ -55,12 +54,36 @@ func _continue() -> void:
 		return
 	_leave(StoryState.SAFEHOUSE_SCENE)
 
-func _play_prologue() -> void:
-	StoryState.replaying = StoryState.prologue_complete
-	StoryState.carry_loadout = false
+func _play_chapter(id: String) -> void:
+	if not StoryState.chapter_unlocked(id):
+		return
 	StoryState.pending_arrival = false
 	StoryState.pending_death_line = false
-	_leave(StoryState.PROLOGUE_SCENE)
+	StoryState.pending_chapter = ""
+	StoryState.pending_death_mission = ""
+	StoryState.returned_live = false
+	StoryState.briefing_done = false
+	if id == "prologue":
+		StoryState.replaying = StoryState.prologue_complete
+		StoryState.carry_loadout = false
+		StoryState.active_mission = ""
+		_leave(StoryState.PROLOGUE_SCENE)
+		return
+	StoryState.replaying = StoryState.mission_done(id)
+	StoryState.carry_loadout = true
+	StoryState.active_mission = id
+	_leave(StoryState.scene_for(id))
+
+func _blurb() -> String:
+	if StoryState.mission2_complete and not StoryState.mission3_complete:
+		return StoryCopy.BLURB_M3
+	if StoryState.mission1_complete and not StoryState.mission2_complete:
+		return StoryCopy.BLURB_M2
+	if StoryState.prologue_complete and not StoryState.mission1_complete:
+		return StoryCopy.BLURB_M1
+	if StoryState.mission3_complete:
+		return "已取得下行权限卡。"
+	return "沿黄漆辅道抵达第3检疫所正压库并进入。"
 
 func _ask_clear() -> void:
 	_confirm.visible = true

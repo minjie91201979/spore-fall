@@ -1,0 +1,43 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/story/Mission01.gd" id="1_m"]
+[ext_resource type="PackedScene" path="res://scenes/world/Player.tscn" id="2_player"]
+[ext_resource type="Script" path="res://scripts/world/CameraShake.gd" id="3_cam"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/TouchControls.tscn" id="5_touch"]
+[ext_resource type="Script" path="res://scripts/systems/ObjectPool.gd" id="6_pool"]
+[ext_resource type="PackedScene" path="res://scenes/world/Bullet.tscn" id="7_bullet"]
+[ext_resource type="PackedScene" path="res://scenes/world/Enemy.tscn" id="8_enemy"]
+
+[node name="Mission01" type="Node2D"]
+y_sort_enabled = true
+script = ExtResource("1_m")
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+
+[node name="Darkness" type="CanvasModulate" parent="."]
+color = Color(0.28, 0.34, 0.44, 1)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+groups=["player"]
+
+[node name="BulletPool" type="Node2D" parent="."]
+script = ExtResource("6_pool")
+pool_group = "bullet_pool"
+pooled_scene = ExtResource("7_bullet")
+prefill = 24
+
+[node name="EnemyPool" type="Node2D" parent="."]
+script = ExtResource("6_pool")
+pool_group = "enemy_pool"
+pooled_scene = ExtResource("8_enemy")
+prefill = 20
+
+[node name="Camera2D" type="Camera2D" parent="."]
+script = ExtResource("3_cam")
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="HUD" parent="UILayer" instance=ExtResource("4_hud")]
+
+[node name="TouchControls" parent="." instance=ExtResource("5_touch")]

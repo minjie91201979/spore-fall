@@ -142,9 +142,9 @@ func say(lines: Array, intro: bool = false, done: Callable = Callable()) -> void
 		radio.expand("路晚棠")
 	dialogue.play(lines, 0.15 if intro else 0.0)
 
-func open_file(title: String, body: String) -> void:
+func open_file(title: String, body: String, marks: PackedStringArray = PackedStringArray()) -> void:
 	_push_lock()
-	reader.open_file(title, body)
+	reader.open_file(title, body, marks)
 
 func show_chapter(kicker: String, chapter_name: String, result: String, kills: int, on_continue: Callable) -> void:
 	_push_lock()
@@ -166,7 +166,7 @@ func _on_dialogue_finished() -> void:
 
 func _on_line_shown(entry: Dictionary) -> void:
 	if bool(entry.get("radio", false)):
-		radio.expand("路晚棠")
+		radio.expand(_radio_name(entry))
 
 func _on_reader_closed() -> void:
 	_pop_lock()
@@ -209,6 +209,12 @@ func _pop_lock() -> void:
 		player.control_mode = 0
 	else:
 		player.control_mode = 2
+
+func _radio_name(entry: Dictionary) -> String:
+	var who := str(entry.get("speaker", "路晚棠"))
+	who = who.replace("（无线电）", "")
+	who = who.replace("（扬声器）", "")
+	return who
 
 func _has_radio(lines: Array) -> bool:
 	for entry in lines:
