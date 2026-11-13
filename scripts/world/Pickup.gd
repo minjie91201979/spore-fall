@@ -3,9 +3,13 @@ extends Node2D
 # 纯 Node2D + 距离判定，不走物理层（吸取上一轮教训：能不碰物理就不碰物理）。
 # 行为：90px 内磁吸向玩家 → 22px 内拾取；12s 寿命，末 3s 闪烁提醒过期。
 
-@export_enum("heal", "crystal", "weapon") var kind: String = "crystal"
+@export_enum("heal", "crystal", "weapon", "ammo") var kind: String = "crystal"
 # weapon 类型专用：要发放的武器 id（掉落方填好；空串在拾取时兜底随机）
 var weapon_id: String = ""
+# 剧情定点弹药箱。生存局误刷时不发子弹，改给一颗晶体。
+var ammo_amount: int = 12
+# 任务道具不随 12 秒寿命消失
+var persistent: bool = false
 
 const MAGNET_RADIUS := 90.0
 const COLLECT_RADIUS := 22.0
@@ -38,10 +42,14 @@ func _ready() -> void:
 func _apply_visual() -> void:
 	var is_heal := kind == "heal"
 	var is_wpn := kind == "weapon"
+	var is_ammo := kind == "ammo"
 	heal_vis.visible = is_heal
 	heal_cross.visible = is_heal
-	crystal_vis.visible = kind == "crystal"
-	crystal_core.visible = kind == "crystal"
+	crystal_vis.visible = kind == "crystal" or is_ammo
+	crystal_core.visible = kind == "crystal" or is_ammo
+	if is_ammo:
+		crystal_vis.color = Color(0.86, 0.62, 0.22)
+		crystal_core.color = Color(0.98, 0.86, 0.45)
 	weapon_vis.visible = is_wpn
 	weapon_shine.visible = is_wpn
 	weapon_icon.visible = is_wpn
@@ -63,12 +71,13 @@ func _physics_process(delta: float) -> void:
 	position = _base_pos + Vector2(0.0, sin(_t * 3.0) * 3.0)
 	if kind == "weapon":
 		weapon_icon.rotation = sin(_t * 2.2) * 0.12
-	# 寿命倒数 + 末 3s 闪烁
-	_life -= delta
-	if _life <= 0.0:
-		queue_free()
-		return
-	visible = _life > 3.0 or fmod(_life, 0.3) > 0.15
+	# 寿命倒数 + 末 3s 闪烁。定点补给箱留在场景里，直到被捡走。
+	if not persistent:
+		_life -= delta
+		if _life <= 0.0:
+			queue_free()
+			return
+		visible = _life > 3.0 or fmod(_life, 0.3) > 0.15
 	# 磁吸 + 拾取（玩家死亡后不再吸）
 	if is_instance_valid(_player) and not _player.get("is_dead"):
 		var d: float = global_position.distance_to(_player.global_position)
@@ -91,12 +100,21 @@ func _collect() -> void:
 		var acquired: bool = GameState.acquire_weapon(weapon_id)
 		if not acquired:
 			# 已拥有（如另一只怪也掉了同一把）：折算 3 颗晶体补偿
-			GameState.score += CRYSTAL_SCORE * 3
+			if not GameState.is_story():
+				GameState.score += CRYSTAL_SCORE * 3
 			GameState.add_crystal()
 			GameState.add_crystal()
 			GameState.add_crystal()
+	elif kind == "ammo":
+		if _player and _player.get("infinite_ammo"):
+			GameState.add_crystal()
+		elif _player:
+			_player.ammo += ammo_amount
+			EventBus.pickup_collected.emit("ammo", ammo_amount)
 	else:
-		GameState.score += CRYSTAL_SCORE
+		# 剧情晶体只进货币，不加生存分数
+		if not GameState.is_story():
+			GameState.score += CRYSTAL_SCORE
 		GameState.add_crystal()   # 晶体同时是武器升级货币（攒满自动升级）
 	# 放大淡出小爆闪
 	set_physics_process(false)

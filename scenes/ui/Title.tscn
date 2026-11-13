@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/Title.gd" id="1_title"]
 [ext_resource type="Script" path="res://scripts/ui/SporeField.gd" id="2_spores"]
@@ -40,6 +40,54 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 shadow_color = Color(0.156863, 0.85098, 0.8, 0.45)
 shadow_size = 22
+
+[sub_resource type="StyleBoxFlat" id="btn_secondary"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.07, 0.18, 0.2, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.156863, 0.85098, 0.8, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="btn_secondary_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.1, 0.28, 0.3, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.247, 0.925, 0.874, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="btn_secondary_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.05, 0.14, 0.16, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.118, 0.706, 0.667, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="btn_primary_pressed"]
 content_margin_left = 18.0
@@ -134,9 +182,9 @@ anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -215.0
-offset_top = -232.0
+offset_top = -300.0
 offset_right = 215.0
-offset_bottom = 232.0
+offset_bottom = 300.0
 theme_override_constants/separation = 7
 alignment = 1
 
@@ -144,7 +192,7 @@ alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.298039, 0.686275, 0.678431, 0.9)
 theme_override_font_sizes/font_size = 12
-text = "无 尽 生 存 · E N D L E S S"
+text = "潮 汐 工 业 特 区"
 horizontal_alignment = 1
 
 [node name="TitleCN" type="Label" parent="Center"]
@@ -163,18 +211,11 @@ theme_override_font_sizes/font_size = 18
 text = "S P O R E   F A L L"
 horizontal_alignment = 1
 
-[node name="BestLabel" type="Label" parent="Center"]
+[node name="Tagline" type="Label" parent="Center"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.494118, 0.603922, 0.631373, 1)
-theme_override_font_sizes/font_size = 14
-text = "最高分　000000"
-horizontal_alignment = 1
-
-[node name="CareerLabel" type="Label" parent="Center"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.64, 0.68, 1)
-theme_override_font_sizes/font_size = 13
-text = ""
+theme_override_colors/font_color = Color(0.72549, 0.796078, 0.811765, 1)
+theme_override_font_sizes/font_size = 15
+text = "这座城不是被吞没的，它是被培养的"
 horizontal_alignment = 1
 
 [node name="Divider" type="ColorRect" parent="Center"]
@@ -183,23 +224,16 @@ layout_mode = 2
 mouse_filter = 2
 color = Color(0.156863, 0.85098, 0.8, 0.35)
 
-[node name="Tagline" type="Label" parent="Center"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72549, 0.796078, 0.811765, 1)
-theme_override_font_sizes/font_size = 15
-text = "在被孢子吞没的城市里，活到最后一刻"
-horizontal_alignment = 1
-
 [node name="Sep" type="Control" parent="Center"]
 custom_minimum_size = Vector2(0, 14)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="StartButton" type="Button" parent="Center"]
+[node name="StoryButton" type="Button" parent="Center"]
 custom_minimum_size = Vector2(260, 56)
 layout_mode = 2
 size_flags_horizontal = 4
-focus_mode = 0
+focus_mode = 2
 theme_override_colors/font_color = Color(0.0196078, 0.0784314, 0.0862745, 1)
 theme_override_colors/font_hover_color = Color(0.0117647, 0.0588235, 0.0666667, 1)
 theme_override_colors/font_pressed_color = Color(0.0117647, 0.0588235, 0.0666667, 1)
@@ -207,7 +241,34 @@ theme_override_font_sizes/font_size = 22
 theme_override_styles/normal = SubResource("btn_primary")
 theme_override_styles/hover = SubResource("btn_primary_hover")
 theme_override_styles/pressed = SubResource("btn_primary_pressed")
-text = "开 始 游 戏"
+text = "剧 情 游 戏"
+
+[node name="SurvivalButton" type="Button" parent="Center"]
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.97, 0.95, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("btn_secondary")
+theme_override_styles/hover = SubResource("btn_secondary_hover")
+theme_override_styles/pressed = SubResource("btn_secondary_pressed")
+text = "生 存 游 戏"
+
+[node name="StoryHint" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.62, 0.64, 1)
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
+
+[node name="SurvivalHint" type="Label" parent="Center"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.494118, 0.603922, 0.631373, 1)
+theme_override_font_sizes/font_size = 12
+text = ""
+horizontal_alignment = 1
 
 [node name="QualityButton" type="Button" parent="Center"]
 custom_minimum_size = Vector2(260, 42)
@@ -254,7 +315,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.360784, 0.458824, 0.482353, 1)
 theme_override_font_sizes/font_size = 12
-text = "WASD / 方向键 移动　·　空格按住开火　·　1–5 切换武器"
+text = "WASD / 方向键 移动　·　空格 开火　·　E 互动　·　1–5 切枪"
 horizontal_alignment = 1
 
 [node name="TouchHint" type="Label" parent="Hints"]
@@ -269,5 +330,5 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.360784, 0.458824, 0.482353, 1)
 theme_override_font_sizes/font_size = 12
-text = "左半屏拖动移动　·　右下 FIRE 按住连发"
+text = "左半屏拖动移动　·　右下 FIRE 开火　·　互动键在 FIRE 左侧"
 horizontal_alignment = 1

@@ -22,6 +22,7 @@ boot_splash/fullsize=false
 [autoload]
 
 GameState="*res://main.gd"
+StoryState="*res://scripts/story/StoryState.gd"
 EventBus="*res://core/EventBus.gd"
 Career="*res://scripts/systems/CareerStats.gd"
 Juice="*res://scripts/fx/Juice.gd"

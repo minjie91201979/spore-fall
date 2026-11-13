@@ -583,6 +583,19 @@ func _spawn_splits() -> void:
 # 死亡掉落：Boss 固定撒一圈晶体 + 1 个医疗包（打完全场唯一补给点）；
 # 杂兵 50% 孢子晶体（加分）；10% 医疗包（仅玩家未满血时才掉，满血不掉避免浪费）。
 func _drop_loot() -> void:
+	# 剧情禁止随机武器箱，避免序章捡到沙漠飞鹰以外的枪。晶体仍可掉，给安全屋换补给。
+	if GameState.is_story():
+		var story_roll := randf()
+		var story_kind := ""
+		if story_roll < 0.10:
+			var p: Node = get_tree().get_first_node_in_group("player")
+			if p and "health" in p and p.health < p.get("max_health"):
+				story_kind = "heal"
+		elif story_roll < 0.60:
+			story_kind = "crystal"
+		if story_kind != "":
+			_spawn_pickup(story_kind, global_position)
+		return
 	if is_boss:
 		var bwid: String = WeaponDB.random_unowned(GameState.owned_weapons)
 		if bwid != "":

@@ -15,6 +15,10 @@ const NAV_AGENT_RADIUS := 18.0
 
 func _ready() -> void:
 	GameState.start_run()
+	# 生存局显式无限弹药，避免刚打完剧情把消耗制带进 Arena
+	var player := get_node_or_null("Player")
+	if player:
+		player.infinite_ammo = true
 	Sfx.start_bgm()
 	_build_ground()
 	_spawn_obstacles()

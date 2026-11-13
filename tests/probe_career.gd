@@ -75,14 +75,20 @@ func _initialize() -> void:
 	print("TEXT ok=%s | %s" % [text_ok, c.summary()])
 
 	# ---------- UI 节点接线 ----------
+	# 生涯摘要从主标题挪到生存准备页，主标题只留模式入口。
 	var go = load("res://scenes/ui/GameOver.tscn").instantiate()
 	var title = load("res://scenes/ui/Title.tscn").instantiate()
 	var hud = load("res://scenes/ui/HUD.tscn").instantiate()
+	var ready = load("res://scenes/ui/SurvivalReady.tscn").instantiate()
+	root.add_child(ready)
+	await process_frame
 	var ui_ok: bool = go.get_node_or_null("Panel/VBox/CareerLabel") != null \
 		and go.get_node_or_null("Panel/VBox/AchievementLabel") != null \
-		and title.get_node_or_null("Center/CareerLabel") != null \
+		and ready.get_node_or_null("Center/CareerLabel") != null \
+		and title.get_node_or_null("Center/StoryButton") != null \
+		and title.get_node_or_null("Center/SurvivalButton") != null \
 		and hud.get_node_or_null("ToastLabel") != null
-	go.free(); title.free(); hud.free()
+	go.free(); title.free(); hud.free(); ready.free()
 	print("UI_WIRED ok=%s" % ui_ok)
 
 	# ---------- GameState 接线：register_kill / end_run ----------
