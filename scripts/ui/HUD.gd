@@ -11,6 +11,8 @@ extends Control
 var _toast_tw: Tween
 var _objective: Label
 var _keys: Label
+@onready var tier_label: Label = $TierLabel
+@onready var boss_warn: ColorRect = $BossWarn
 var _dry: float = 0.0
 var _ammo_pos := Vector2(20, 134)
 var _weapon_pos := Vector2(20, 172)
@@ -25,6 +27,9 @@ func _ready() -> void:
 	GameState.upgrade_applied.connect(_on_upgrade_applied)
 	GameState.game_over.connect(_on_game_over)
 	GameState.weapon_acquired.connect(_on_weapon_acquired)
+	GameState.difficulty_changed.connect(_on_difficulty_changed)
+	EventBus.boss_spawned.connect(_on_boss_spawned)
+	EventBus.boss_defeated.connect(_on_boss_defeated)
 	quality_button.pressed.connect(_on_quality_pressed)
 	_update_quality_text()
 	add_to_group("hud")
@@ -55,6 +60,25 @@ func _on_quality_changed(_lv: int) -> void:
 
 func _update_quality_text() -> void:
 	quality_button.text = "画质 %s" % Quality.LEVEL_NAMES[Quality.level]
+func _on_difficulty_changed(tier: int) -> void:
+	var color := Color(0.95, 0.95, 0.95)
+	if tier >= 4:
+		color = Color(0.98, 0.32, 0.22)
+	elif tier >= 2:
+		color = Color(0.95, 0.70, 0.30)
+	tier_label.text = "TIER %s" % ["I", "II", "III", "IV"][min(tier, 3)]
+	tier_label.add_theme_color_override("font_color", color)
+func _on_boss_spawned(_name: String, _max_hp: float) -> void:
+	boss_warn.modulate.a = 0.0
+	boss_warn.visible = true
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	for _i in 6:
+		tw.tween_property(boss_warn, "modulate:a", 0.32, 0.12)
+		tw.tween_property(boss_warn, "modulate:a", 0.0, 0.18)
+func _on_boss_defeated(_name: String) -> void:
+	boss_warn.visible = false
+
 
 func _on_weapon_acquired(id: String) -> void:
 	# 捡到新武器：金色 toast + 武器栏自动加格子并切换
@@ -70,6 +94,7 @@ func _on_game_over(_score: int, _time: float) -> void:
 	tw.set_ignore_time_scale(true)
 	tw.tween_property(self, "modulate:a", 0.0, 0.25)
 	await get_tree().create_timer(0.3, true, false, true).timeout
+	boss_warn.visible = false
 	hide()
 
 func _on_player_hit(_dmg: int) -> void:
@@ -152,6 +177,8 @@ func _process(delta: float) -> void:
 	else:
 		ammo_label.position = _ammo_pos
 		weapon_label.position = _weapon_pos
+	tier_label.visible = not story
+	boss_warn.visible = false
 	if not story:
 		score_label.text = "SCORE %06d" % GameState.score
 		combo_label.text = "COMBO x%d" % GameState.combo

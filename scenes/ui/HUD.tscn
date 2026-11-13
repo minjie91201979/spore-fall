@@ -60,6 +60,25 @@ color = Color(0.9, 0.1, 0.1, 1)
 mouse_filter = 2
 modulate = Color(1, 1, 1, 0)
 
+
+[node name="TierLabel" type="Label" parent="."
+layout_mode = 1
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 30.0
+position = Vector2(20, 36)
+text = "TIER I"
+mouse_filter = 2
+]
+
+[node name="BossWarn" type="ColorRect" parent="."
+layout_mode = 1
+anchors_preset = 15
+offset_right = 0.0
+offset_bottom = 0.0
+color = Color(1, 0, 0, 0)
+mouse_filter = 2
+]
 [node name="ScoreLabel" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = 0

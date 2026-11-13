@@ -49,6 +49,7 @@ func _ready() -> void:
 	_session.mount(_player)
 	Sfx.start_bgm()
 	Sfx.set_bgm_db(-18.0)
+	Sfx.start_ambient("amb_hvac")
 	if chapter != "":
 		_play_chapter(chapter, kills, replay)
 	elif arrival or (StoryState.prologue_complete and not StoryState.arrival_played and not replay):

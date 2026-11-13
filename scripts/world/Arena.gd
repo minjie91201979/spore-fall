@@ -20,6 +20,7 @@ func _ready() -> void:
 	if player:
 		player.infinite_ammo = true
 	Sfx.start_bgm()
+	Sfx.start_ambient("amb_forest")
 	_build_ground()
 	_spawn_obstacles()
 	# 场景分组有时要等进树才挂上；烘焙前再确认一次，避免这根方柱被漏挖。

@@ -125,3 +125,57 @@ f = 180.0 + 90.0 * np.sin(2 * np.pi * 22.0 * t)
 phase = 2 * np.pi * np.cumsum(f) / SR
 x = x + 0.18 * np.sin(phase) * env_exp(n, 26)
 save("flame", x * 0.6, outdir)
+
+# Boss 逼近低频嗡鸣（22050Hz 4s 循环基底）
+n = int(SR * 4.0)
+t = np.arange(n) / SR
+m1 = noise(n, 8) * env_exp(n, 200)
+m2 = noise(n, 12) * env_exp(n, 160)
+m3 = 0.5 * np.sin(2*np.pi*35*t) * env_exp(n, 300)
+x = (m1 + m2 + m3) * 0.55
+save("amb_boss", x * 0.9, outdir)
+
+# 菌林低语 4s 长底噪（极轻呼吸节奏）
+n = int(SR * 4.0)
+t = np.arange(n) / SR
+hiss = noise(n, 6)
+env_shape = 0.7 + 0.3 * np.sin(2*np.pi*0.4*t)
+x = hiss * env_shape
+x = np.convolve(x, np.ones(30)/30.0, mode="same")
+save("amb_forest", x * 0.35, outdir)
+
+# 正压库机器嗡嗡声 4s 循环
+n = int(SR * 4.0)
+t = np.arange(n) / SR
+low = 0.35*np.sin(2*np.pi*55*t) + 0.18*np.sin(2*np.pi*110*t) + 0.08*np.sin(2*np.pi*220*t)
+noise_floor = noise(n, 3) * 0.12
+x = (low + noise_floor) * 0.6
+x = np.convolve(x, np.ones(50)/50.0, mode="same")
+save("amb_hvac", x * 0.45, outdir)
+
+# Boss 逼近低频嗡鸣（22050Hz 4s 循环基底）
+n = int(SR * 4.0)
+t = np.arange(n) / SR
+m1 = noise(n, 8) * env_exp(n, 200)
+m2 = noise(n, 12) * env_exp(n, 160)
+m3 = 0.5 * np.sin(2*np.pi*35*t) * env_exp(n, 300)
+x = (m1 + m2 + m3) * 0.55
+save("amb_boss", x * 0.9, outdir)
+
+# 菌林低语 4s 长底噪（极轻呼吸节奏）
+n = int(SR * 4.0)
+t = np.arange(n) / SR
+hiss = noise(n, 6)
+env_shape = 0.7 + 0.3 * np.sin(2*np.pi*0.4*t)
+x = hiss * env_shape
+x = np.convolve(x, np.ones(30)/30.0, mode="same")
+save("amb_forest", x * 0.35, outdir)
+
+# 正压库机器嗡嗡声 4s 循环
+n = int(SR * 4.0)
+t = np.arange(n) / SR
+low = 0.35*np.sin(2*np.pi*55*t) + 0.18*np.sin(2*np.pi*110*t) + 0.08*np.sin(2*np.pi*220*t)
+noise_floor = noise(n, 3) * 0.12
+x = (low + noise_floor) * 0.6
+x = np.convolve(x, np.ones(50)/50.0, mode="same")
+save("amb_hvac", x * 0.45, outdir)

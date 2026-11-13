@@ -14,6 +14,9 @@ const STREAMS := {
 	"shotgun": preload("res://assets/audio/shotgun.wav"),
 	"laser": preload("res://assets/audio/laser.wav"),
 	"flame": preload("res://assets/audio/flame.wav"),
+	"amb_boss": preload("res://assets/audio/amb_boss.wav"),
+	"amb_forest": preload("res://assets/audio/amb_forest.wav"),
+	"amb_hvac": preload("res://assets/audio/amb_hvac.wav"),
 }
 # 各音效音量（dB），开火最轻避免刷屏刺耳
 const VOLUMES := {
@@ -27,6 +30,9 @@ const VOLUMES := {
 	"shotgun": -7.0,
 	"laser": -9.0,
 	"flame": -12.0,
+	"amb_boss": -20.0,
+	"amb_forest": -26.0,
+	"amb_hvac": -24.0,
 }
 const VOICES := 8
 
@@ -67,6 +73,34 @@ func set_bgm_db(db: float) -> void:
 
 func stop_bgm() -> void:
 	_bgm.stop()
+
+
+const AMBIENT_VOICES := 3
+var _ambient_streamers: Array[AudioStreamPlayer] = []
+var _ambient_idx: int = 0
+
+func start_ambient(name: String) -> void:
+	if not STREAMS.has(name):
+		return
+	var p = _pick_ambient()
+	p.stream = STREAMS[name]
+	p.volume_db = VOLUMES.get(name, -20.0)
+	p.loop = true
+	p.play(0.0)
+
+func stop_all_ambient() -> void:
+	for p in _ambient_streamers:
+		p.stop()
+
+func _pick_ambient() -> AudioStreamPlayer:
+	if _ambient_streamers.is_empty():
+		for i in AMBIENT_VOICES:
+			var a := AudioStreamPlayer.new()
+			add_child(a)
+			_ambient_streamers.append(a)
+	var p = _ambient_streamers[_ambient_idx]
+	_ambient_idx = (_ambient_idx + 1) % len(_ambient_streamers)
+	return p
 
 func _on_bgm_finished() -> void:
 	_bgm.play()   # wav 循环兜底（import 未设 loop 时手动续播）
