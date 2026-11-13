@@ -111,6 +111,14 @@ func _play_chapter(chapter: String, kills: int, replay: bool) -> void:
 			lines = StoryCopy.m3_return()
 			title = StoryCopy.CHAPTER_M3
 			result = StoryCopy.RESULT_M3
+		"m4":
+			lines = StoryCopy.m4_return()
+			title = StoryCopy.CHAPTER_M4
+			result = StoryCopy.RESULT_M4
+		"m5":
+			lines = StoryCopy.m5_return()
+			title = StoryCopy.CHAPTER_M5
+			result = StoryCopy.RESULT_M5
 		_:
 			return
 	_player.control_mode = 2
@@ -221,6 +229,14 @@ func _on_mission(id: String) -> void:
 	if id == "m2":
 		StoryState.briefing_done = true
 		_session.say(StoryCopy.m2_depart(), false, func() -> void: _depart(id))
+		return
+	if id == "m4":
+		StoryState.briefing_done = true
+		_session.say(StoryCopy.m4_depart(), false, func() -> void: _depart(id))
+		return
+	if id == "m5":
+		StoryState.briefing_done = true
+		_session.say(StoryCopy.m5_depart(), false, func() -> void: _depart(id))
 		return
 	_depart(id)
 
@@ -382,8 +398,10 @@ func _build() -> void:
 	north.interacted.connect(func() -> void: _on_mission("m2"))
 	var west := StoryWorld.interactable(self, Vector2(-250, 90), _prompt_for("m3"))
 	west.interacted.connect(func() -> void: _on_mission("m3"))
-	var later := StoryWorld.interactable(self, Vector2(40, -160), "任 务 四　？？？")
-	later.radius = 36.0
+	var south_w := StoryWorld.interactable(self, Vector2(40, -160), _prompt_for("m4"))
+	south_w.interacted.connect(func() -> void: _on_mission("m4"))
+	var south_e := StoryWorld.interactable(self, Vector2(120, -150), _prompt_for("m5"))
+	south_e.interacted.connect(func() -> void: _on_mission("m5"))
 	var heal: Node2D = PICKUP.instantiate()
 	heal.kind = "heal"
 	heal.persistent = true

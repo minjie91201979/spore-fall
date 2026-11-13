@@ -9,6 +9,8 @@ const SAFEHOUSE_SCENE := "res://scenes/story/Safehouse.tscn"
 const MISSION1_SCENE := "res://scenes/story/Mission01.tscn"
 const MISSION2_SCENE := "res://scenes/story/Mission02.tscn"
 const MISSION3_SCENE := "res://scenes/story/Mission03.tscn"
+const MISSION4_SCENE := "res://scenes/story/Mission04.tscn"
+const MISSION5_SCENE := "res://scenes/story/Mission05.tscn"
 const SELECT_SCENE := "res://scenes/ui/StorySelect.tscn"
 const TITLE_SCENE := "res://scenes/ui/Title.tscn"
 
@@ -19,6 +21,9 @@ var prologue_complete: bool = false
 var mission1_complete: bool = false
 var mission2_complete: bool = false
 var mission3_complete: bool = false
+var mission4_complete: bool = false
+var mission5_complete: bool = false
+var pei_choice: String = ""   # "" / "A"(翠障剂) / "B"(焚毁)，M4 观察廊决定，M5 引用
 var current_safehouse: String = SAFEHOUSE_ID
 var ammo: int = 24
 var health: float = 100.0
@@ -75,7 +80,7 @@ func _ready() -> void:
 	load_disk()
 
 func missions_cleared() -> int:
-	# 通关统计不含序章。这一期只结算任务一到三，四、五仍锁着。
+	# 通关统计不含序章。
 	var n := 0
 	if mission1_complete:
 		n += 1
@@ -83,9 +88,17 @@ func missions_cleared() -> int:
 		n += 1
 	if mission3_complete:
 		n += 1
+	if mission4_complete:
+		n += 1
+	if mission5_complete:
+		n += 1
 	return n
 
 func recent_name() -> String:
+	if mission5_complete:
+		return "任务五　把根烧掉"
+	if mission4_complete:
+		return "任务四　向下生长"
 	if mission3_complete:
 		return "任务三　青潮的门"
 	if mission2_complete:
@@ -103,6 +116,10 @@ func next_objective() -> String:
 		return "目标　前往市政巡查站"
 	if not mission3_complete:
 		return "目标　前往青潮生物外场仓库"
+	if not mission4_complete:
+		return "目标　下行至 B2 培养层，解救韩朔"
+	if not mission5_complete:
+		return "目标　深入翠巢主腔，焚毁本体"
 	return ""
 
 func chapter_unlocked(id: String) -> bool:
@@ -115,6 +132,10 @@ func chapter_unlocked(id: String) -> bool:
 			return mission1_complete
 		"m3":
 			return mission2_complete
+		"m4":
+			return mission3_complete
+		"m5":
+			return mission4_complete
 		_:
 			return false
 
@@ -128,6 +149,10 @@ func mission_done(id: String) -> bool:
 			return mission2_complete
 		"m3":
 			return mission3_complete
+		"m4":
+			return mission4_complete
+		"m5":
+			return mission5_complete
 		_:
 			return false
 
@@ -139,6 +164,10 @@ func scene_for(id: String) -> String:
 			return MISSION2_SCENE
 		"m3":
 			return MISSION3_SCENE
+		"m4":
+			return MISSION4_SCENE
+		"m5":
+			return MISSION5_SCENE
 		"safehouse":
 			return SAFEHOUSE_SCENE
 		_:
@@ -198,6 +227,10 @@ func mark_mission(id: String) -> void:
 		"m3":
 			mission3_complete = true
 			descent_card = true
+		"m4":
+			mission4_complete = true
+		"m5":
+			mission5_complete = true
 	refresh_keys()
 
 func load_disk() -> void:
@@ -255,6 +288,9 @@ func write_save() -> void:
 	cfg.set_value("story", "mission1_complete", mission1_complete)
 	cfg.set_value("story", "mission2_complete", mission2_complete)
 	cfg.set_value("story", "mission3_complete", mission3_complete)
+	cfg.set_value("story", "mission4_complete", mission4_complete)
+	cfg.set_value("story", "mission5_complete", mission5_complete)
+	cfg.set_value("story", "pei_choice", pei_choice)
 	cfg.set_value("story", "current_safehouse", current_safehouse)
 	cfg.set_value("story", "ammo", ammo)
 	cfg.set_value("story", "health", health)
@@ -333,6 +369,9 @@ func _defaults() -> void:
 	mission1_complete = false
 	mission2_complete = false
 	mission3_complete = false
+	mission4_complete = false
+	mission5_complete = false
+	pei_choice = ""
 	current_safehouse = SAFEHOUSE_ID
 	ammo = 24
 	health = 100.0
@@ -377,6 +416,9 @@ func _read() -> void:
 	mission1_complete = bool(cfg.get_value("story", "mission1_complete", false))
 	mission2_complete = bool(cfg.get_value("story", "mission2_complete", false))
 	mission3_complete = bool(cfg.get_value("story", "mission3_complete", false))
+	mission4_complete = bool(cfg.get_value("story", "mission4_complete", false))
+	mission5_complete = bool(cfg.get_value("story", "mission5_complete", false))
+	pei_choice = str(cfg.get_value("story", "pei_choice", ""))
 	current_safehouse = str(cfg.get_value("story", "current_safehouse", SAFEHOUSE_ID))
 	ammo = int(cfg.get_value("story", "ammo", 24))
 	health = float(cfg.get_value("story", "health", 100.0))
