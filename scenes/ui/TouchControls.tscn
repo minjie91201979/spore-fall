@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/TouchControls.gd" id="1_tc"]
 [ext_resource type="Texture2D" path="res://assets/ui/joy_base.png" id="2_base"]
 [ext_resource type="Texture2D" path="res://assets/ui/joy_knob.png" id="3_knob"]
+[ext_resource type="Script" path="res://scripts/ui/WeaponBar.gd" id="4_wbar"]
 
 [sub_resource type="StyleBoxFlat" id="fire_normal"]
 bg_color = Color(0.854902, 0.145098, 0.282353, 0.22)
@@ -73,3 +74,17 @@ theme_override_styles/normal = SubResource("fire_normal")
 theme_override_styles/hover = SubResource("fire_hover")
 theme_override_styles/pressed = SubResource("fire_pressed")
 text = "FIRE"
+
+[node name="WeaponBar" type="HBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -170.0
+offset_top = -92.0
+offset_right = 170.0
+offset_bottom = -6.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 6
+script = ExtResource("4_wbar")

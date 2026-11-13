@@ -1,6 +1,8 @@
 extends CharacterBody2D
 # 主角控制 + 受伤/死亡 + 开火（§11.4.1 / §11.4.3）。
 # 键盘 WASD/方向键 + 移动端虚拟摇杆（TouchInput.move_vector）合并驱动。
+# 中毒 DoT：毒针/毒液命中后按 dps 持续掉血（刷新不叠加），中毒期间整体染毒绿。
+# 武器系统：GameState.current_weapon 决定弹道行为（WeaponDB），切换武器即时生效。
 const SPEED: float = 220.0
 
 @export var max_health: float = 100.0
@@ -14,10 +16,15 @@ var _last_dir: Vector2 = Vector2.RIGHT
 var _fire_cd: float = 0.0
 var _health_base: float = 100.0   # @export 基准值，「厚壁」卡只叠加在它之上
 
-# 武器数值（由 GameState.weapon_level 派生，升级即刷新）
+# 武器数值（由 GameState.weapon_level 派生，升级即刷新；武器定义在此基础上再乘）
 var fire_interval: float = 0.22
 var bullet_damage: float = 12.0
 var projectile_count: int = 1
+
+# 中毒状态：刷新制（再中一针只重置时长/取更高 dps），防止弹幕齐射叠出秒杀
+var _poison_dps: float = 0.0
+var _poison_time: float = 0.0
+var _poison_tick_t: float = 0.0
 
 @onready var flashlight: PointLight2D = $Flashlight
 @onready var outline: Sprite2D = $Outline
@@ -50,6 +57,7 @@ func _physics_process(_delta: float) -> void:
 	# 限制在竞技场范围内，避免走出地面看到灰色虚空
 	global_position.x = clampf(global_position.x, -880.0, 880.0)
 	global_position.y = clampf(global_position.y, -880.0, 880.0)
+	_tick_poison(_delta)
 
 # 单独抽出来便于探针断言「轻足」卡真的改了移速，而不是只改了字典
 func current_speed() -> float:
@@ -70,12 +78,13 @@ func fire() -> void:
 func _attack() -> void:
 	if _fire_cd > 0.0:
 		return   # 统一冷却：键盘 echo / 触屏连点 / 自动连发都走这一个闸门
-	_fire_cd = fire_interval
+	var def: Dictionary = WeaponDB.get_def(GameState.current_weapon)
+	_fire_cd = maxf(0.045, fire_interval * float(def.interval_mult))
 	if not infinite_ammo and ammo <= 0:
 		return
 	# 开火不做 hitstop（会拖慢全局时间轴），只给轻微屏震做反馈
 	Juice.add_trauma(0.08)
-	Sfx.play("shoot")
+	Sfx.play(String(def.sfx), float(def.sfx_pitch))
 	# 瞄准方向：自动锁最近敌人（摇杆/键盘只管走位），无目标才退回最后移动方向。
 	# 这样手机上不必「为了打左边而往左走」，走位与瞄准彻底解耦。
 	var aim_base: Vector2 = _last_dir
@@ -83,18 +92,34 @@ func _attack() -> void:
 		var auto_dir := _auto_aim_dir()
 		if auto_dir != Vector2.ZERO:
 			aim_base = auto_dir
+	# 弹丸数：固定弹丸的武器（霰弹 6 发）用定义值，成长型武器（沙漠飞鹰）用等级派生
+	var pellets: int = int(def.pellets)
+	if pellets <= 0:
+		pellets = projectile_count
+	pellets += int(GameState.mods.projectiles)
 	# 对象池取子弹（§11.9），池缺失时退回 instantiate 兜底
 	var pool: Node = get_tree().get_first_node_in_group("bullet_pool")
-	# 多弹道散射：每发间开 0.16 弧度，奇数居中偶数对称
-	for i in projectile_count:
-		var dir: Vector2 = aim_base.rotated((i - (projectile_count - 1) * 0.5) * 0.16)
+	# 多弹道散射：每发间开 def.spread 弧度，奇数居中偶数对称
+	for i in pellets:
+		var dir: Vector2 = aim_base.rotated((i - (pellets - 1) * 0.5) * float(def.spread))
+		# 喷火枪的火舌带随机抖动，喷出一团扇形火而不是一根直线
+		if String(def.bullet_kind) == "flame":
+			dir = dir.rotated(randf_range(-0.09, 0.09))
 		var b: Area2D
 		if pool:
 			b = pool.acquire(get_tree().current_scene) as Area2D
 		else:
 			b = bullet_scene.instantiate()
 			get_tree().current_scene.add_child(b)
-		b.setup(dir, bullet_damage)
+		b.setup(dir, bullet_damage * float(def.damage_mult), {
+			"kind": String(def.bullet_kind),
+			"speed_mult": float(def.speed_mult),
+			"life_mult": float(def.life_mult),
+			"pierce": int(def.pierce_add),
+			"pierce_all": bool(def.get("pierce_all", false)),
+			"burn_dps": float(def.burn_dps),
+			"burn_time": float(def.burn_time),
+		})
 		# 从身体边缘生成，避免卡在自身碰撞体里
 		b.global_position = global_position + dir * 18.0
 
@@ -148,17 +173,49 @@ func heal(amount: float) -> void:
 		return
 	health = minf(health + amount, max_health)
 
-func take_damage(amount: float) -> void:
+# 挂毒入口（毒针/毒液弹命中调用）：刷新制，取更高 dps 并重置时长
+func apply_poison(dps: float, duration: float) -> void:
+	if is_dead:
+		return
+	_poison_dps = maxf(_poison_dps, dps)
+	_poison_time = duration
+	_poison_tick_t = 0.0
+
+# 中毒结算：0.5s 一跳的轻量受击（不触发 hitstop / 受伤吼，只留轻微反馈），
+# 染毒绿色提示玩家「持续掉血中」，毒尽恢复本色
+const POISON_TICK := 0.5
+const POISON_TINT := Color(0.62, 1.0, 0.45)
+
+func _tick_poison(delta: float) -> void:
+	if _poison_time <= 0.0:
+		return
+	_poison_time -= delta
+	_poison_tick_t += delta
+	var spr: Sprite2D = $Sprite
+	if _poison_time <= 0.0:
+		_poison_dps = 0.0
+		spr.modulate = Color.WHITE   # 玩家基础贴图本色
+		return
+	spr.modulate = POISON_TINT
+	if _poison_tick_t >= POISON_TICK:
+		_poison_tick_t -= POISON_TICK
+		take_damage(_poison_dps * POISON_TICK, true)
+
+func take_damage(amount: float, light: bool = false) -> void:
 	if is_dead:
 		return
 	health -= amount
-	Juice.add_trauma(0.3)
-	Juice.haptic(28)
-	Sfx.play("hurt")
+	if light:
+		# 毒 tick 等轻量伤害：小屏震，无 hitstop/音效刷屏
+		Juice.add_trauma(0.06)
+	else:
+		Juice.add_trauma(0.3)
+		Juice.haptic(28)
+		Sfx.play("hurt")
 	EventBus.player_hit.emit(amount)
 	if health <= 0:
 		_die()
-	else:
+	elif not light:
 		Juice.hitstop(0.04, 0.05)
 
 func _die() -> void:

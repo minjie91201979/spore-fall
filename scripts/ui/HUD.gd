@@ -17,6 +17,7 @@ func _ready() -> void:
 	GameState.weapon_leveled.connect(_on_weapon_leveled)
 	GameState.upgrade_applied.connect(_on_upgrade_applied)
 	GameState.game_over.connect(_on_game_over)
+	GameState.weapon_acquired.connect(_on_weapon_acquired)
 	quality_button.pressed.connect(_on_quality_pressed)
 	_update_quality_text()
 
@@ -28,6 +29,11 @@ func _on_quality_changed(_lv: int) -> void:
 
 func _update_quality_text() -> void:
 	quality_button.text = "画质 %s" % Quality.LEVEL_NAMES[Quality.level]
+
+func _on_weapon_acquired(id: String) -> void:
+	# 捡到新武器：金色 toast + 武器栏自动加格子并切换
+	_show_toast("获得新武器：%s" % WeaponDB.name_of(id), Color(1.0, 0.85, 0.3))
+
 
 func _on_game_over(_score: int, _time: float) -> void:
 	# 死亡时让 HUD 淡出，给结算层让位

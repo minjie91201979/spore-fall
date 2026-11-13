@@ -1,9 +1,11 @@
 extends Node2D
-# 拾取掉落（§11.10 类）：heal 医疗包回血 / crystal 孢子晶体加分。
+# 拾取掉落（§11.10 类）：heal 医疗包回血 / crystal 孢子晶体加分 / weapon 武器箱换新枪。
 # 纯 Node2D + 距离判定，不走物理层（吸取上一轮教训：能不碰物理就不碰物理）。
 # 行为：90px 内磁吸向玩家 → 22px 内拾取；12s 寿命，末 3s 闪烁提醒过期。
 
-@export_enum("heal", "crystal") var kind: String = "crystal"
+@export_enum("heal", "crystal", "weapon") var kind: String = "crystal"
+# weapon 类型专用：要发放的武器 id（掉落方填好；空串在拾取时兜底随机）
+var weapon_id: String = ""
 
 const MAGNET_RADIUS := 90.0
 const COLLECT_RADIUS := 22.0
@@ -22,24 +24,45 @@ var _collected: bool = false
 @onready var heal_cross: Polygon2D = $HealCross
 @onready var crystal_vis: Polygon2D = $CrystalVis
 @onready var crystal_core: Polygon2D = $CrystalCore
+@onready var weapon_vis: Polygon2D = $WeaponVis
+@onready var weapon_shine: Polygon2D = $WeaponShine
+@onready var weapon_icon: Sprite2D = $WeaponIcon
 
 func _ready() -> void:
 	add_to_group("pickup")
 	_player = get_tree().get_first_node_in_group("player")
 	# 先记基准位再挂动画（入场时 global_position 已由生成方摆好）
 	_base_pos = global_position
+	_apply_visual()
+
+func _apply_visual() -> void:
 	var is_heal := kind == "heal"
+	var is_wpn := kind == "weapon"
 	heal_vis.visible = is_heal
 	heal_cross.visible = is_heal
-	crystal_vis.visible = not is_heal
-	crystal_core.visible = not is_heal
+	crystal_vis.visible = kind == "crystal"
+	crystal_core.visible = kind == "crystal"
+	weapon_vis.visible = is_wpn
+	weapon_shine.visible = is_wpn
+	weapon_icon.visible = is_wpn
+	if is_wpn:
+		# 空串兜底：随机挑一把未拥有的（全收集时退回晶体，在 _collect 前判定）
+		if weapon_id == "":
+			weapon_id = WeaponDB.random_unowned(GameState.owned_weapons)
+			if weapon_id == "":
+				kind = "crystal"
+				_apply_visual()
+				return
+		weapon_icon.texture = WeaponDB.icon_of(weapon_id)
 
 func _physics_process(delta: float) -> void:
 	if _collected:
 		return
 	_t += delta
-	# 上下浮动（爽刷的 juice 细节）
+	# 上下浮动（爽刷的 juice 细节）；武器箱多加一点旋转的「贵重感」
 	position = _base_pos + Vector2(0.0, sin(_t * 3.0) * 3.0)
+	if kind == "weapon":
+		weapon_icon.rotation = sin(_t * 2.2) * 0.12
 	# 寿命倒数 + 末 3s 闪烁
 	_life -= delta
 	if _life <= 0.0:
@@ -64,6 +87,14 @@ func _collect() -> void:
 	if kind == "heal":
 		if _player and _player.has_method("heal"):
 			_player.heal(HEAL_AMOUNT)
+	elif kind == "weapon":
+		var acquired: bool = GameState.acquire_weapon(weapon_id)
+		if not acquired:
+			# 已拥有（如另一只怪也掉了同一把）：折算 3 颗晶体补偿
+			GameState.score += CRYSTAL_SCORE * 3
+			GameState.add_crystal()
+			GameState.add_crystal()
+			GameState.add_crystal()
 	else:
 		GameState.score += CRYSTAL_SCORE
 		GameState.add_crystal()   # 晶体同时是武器升级货币（攒满自动升级）

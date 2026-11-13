@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_miasma.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "酸液孢 Sprayer"
+hearing = 300.0
+move_speed = 55.0
+max_health = 65.0
+attack_power = 8.0
+alert_radius = 420.0
+behavior = "walk"
+tint = Color(1.0, 0.92, 0.45, 1)
+blood_color = Color(0.6, 0.62, 0.1, 1)
+sprite_texture = ExtResource("2_tex")
+scale_mult = 1.1
+spawn_weight_tier0 = 0.08
+spawn_weight_per_tier = 0.18
+contact_radius = 28.0
+score_value = 22
+ranged_attack = "venom"
+ranged_interval = 3.2
+ranged_range = 360.0
+ranged_min_range = 110.0
+ranged_windup = 0.45
+ranged_damage_mult = 0.7
+ranged_poison_dps = 3.0
+ranged_poison_time = 2.0
+spray_count = 5
+spray_spread_deg = 34.0
+leaves_cloud = true
+cloud_radius = 46.0
+cloud_duration = 2.6
+cloud_dps = 8.0

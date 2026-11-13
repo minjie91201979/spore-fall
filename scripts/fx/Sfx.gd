@@ -10,6 +10,10 @@ const STREAMS := {
 	"hurt": preload("res://assets/audio/hurt.wav"),
 	"pickup": preload("res://assets/audio/pickup.wav"),
 	"levelup": preload("res://assets/audio/levelup.wav"),
+	"spit": preload("res://assets/audio/spit.wav"),
+	"shotgun": preload("res://assets/audio/shotgun.wav"),
+	"laser": preload("res://assets/audio/laser.wav"),
+	"flame": preload("res://assets/audio/flame.wav"),
 }
 # 各音效音量（dB），开火最轻避免刷屏刺耳
 const VOLUMES := {
@@ -19,6 +23,10 @@ const VOLUMES := {
 	"hurt": -6.0,
 	"pickup": -8.0,
 	"levelup": -5.0,
+	"spit": -10.0,
+	"shotgun": -7.0,
+	"laser": -9.0,
+	"flame": -12.0,
 }
 const VOICES := 8
 

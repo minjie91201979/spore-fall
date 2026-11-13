@@ -4,12 +4,15 @@ extends CharacterBody2D
 # 目标实时设为玩家位置，由导航网格算出绕障路点。
 # 池化（§11.9）：死亡不再 queue_free，归还 ObjectPool 复用；粒子改为「复制一份留在原地爆」，
 # 本体带着粒子节点回池，保证每次死亡都有击杀爆裂。
+# §11.12 远程变种：射程带内站桩前摇后开火（毒针单发 / 毒液扇喷），太近收枪转贴身。
+# §11.13 Boss 技能组：与冲锋独立冷却，非冲锋状态施放三技能（弹幕环/剧毒喷息/巢群召唤）。
 
 const BASE_SCALE := 0.19   # 贴图主体已归一化（210/256），该值对应杂兵约 40px 屏幕尺寸
 
 @export var stats: EnemyStats
 
 const PICKUP_SCENE := preload("res://scenes/world/Pickup.tscn")
+const ENEMY_BULLET_SCENE := preload("res://scenes/world/EnemyBullet.tscn")
 
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var particles: GPUParticles2D = $KillParticles
@@ -25,7 +28,7 @@ var _player: Node2D
 var _contact_cooldown: float = 0.0
 var _base_tint: Color = Color.WHITE
 
-# Boss 冲锋状态机：0 追击蓄势 / 1 前摇（可读的威胁预警）/ 2 突进
+# Boss 冲锋状态机：0 追击蓄势 / 1 前摇（可读的威胁预警）/ 2 突进 / 3 技能前摇
 var _charge_state: int = 0
 var _charge_t: float = 0.0
 var _charge_cd: float = 3.4
@@ -43,6 +46,16 @@ var _base_scale: Vector2 = Vector2.ONE * 0.095
 # 分裂孢子体（§11.5 M4）：实例级视觉缩放 + 防递归标记，池化复用必须清零
 var _is_split_child: bool = false
 var _size_mult: float = 1.0
+
+# 远程攻击状态机（§11.12）：0 追击 / 1 站桩蓄射前摇
+var _ranged_state: int = 0
+var _ranged_t: float = 0.0
+var _ranged_cd: float = 0.0
+
+# Boss 技能（§11.13）：独立于冲锋的冷却；0 弹幕环 / 1 剧毒喷息 / 2 巢群召唤
+var _skill_cd: float = 4.0
+var _skill_pending: int = 0
+var _last_skill: int = -1
 
 func _ready() -> void:
 	add_to_group("enemy")
@@ -74,6 +87,11 @@ func reset_for_reuse() -> void:
 	_is_split_child = false          # 池化复用：清掉上一只的分裂子体标记
 	_size_mult = 1.0
 	_setup_ambush(stats != null and not stats.is_boss and stats.behavior == "ambush")
+	_ranged_state = 0
+	_ranged_t = 0.0
+	_ranged_cd = _first_ranged_cd()
+	_skill_cd = 4.0
+	_last_skill = -1
 	_apply_visual()
 
 # 刷怪器选种后调用：设定变种参数并按数据应用视觉（染色/体型）
@@ -93,12 +111,23 @@ func configure(s: EnemyStats, hp_mult: float = 1.0, is_split_child: bool = false
 	_steer_t = 0.0
 	_steer_dir = Vector2.ZERO
 	_base_tint = s.tint
-	_apply_visual()
 	_setup_ambush(not s.is_boss and s.behavior == "ambush")
+	_ranged_state = 0
+	_ranged_t = 0.0
+	_ranged_cd = _first_ranged_cd()
+	_skill_cd = 4.0
+	_last_skill = -1
+	_apply_visual()
 	if is_boss:
 		add_to_group("boss")
 	else:
 		remove_from_group("boss")   # 池化复用：Boss 退回杂兵时清掉分组
+
+# 首次开火延迟：进场先追一小段，别一刷出来就隔屏狙击（远程怪 1.2s，其余值无意义）
+func _first_ranged_cd() -> float:
+	if stats and stats.ranged_attack != "" and not stats.is_boss:
+		return 1.2
+	return stats.ranged_interval if stats else 2.6
 
 # 潜伏/常规初始化（伏击体半埋，其余满状态登场）
 func _setup_ambush(enabled: bool) -> void:
@@ -141,7 +170,7 @@ func _blood_color() -> Color:
 		return Color(stats.tint.r * 0.55, stats.tint.g * 0.55, stats.tint.b * 0.55)
 	return Color(0.16, 0.55, 0.5)
 
-# 前摇染色：Boss 蓄力时整只精灵被推亮成血红色，玩家一眼读懂「要冲了」
+# 前摇染色：Boss 蓄力时整只精灵被推亮，玩家一眼读懂「要出招了」
 func _flash_tint(c: Color, dur: float) -> void:
 	var spr: Sprite2D = $Sprite
 	var tw := create_tween()
@@ -153,16 +182,18 @@ func _physics_process(delta: float) -> void:
 		return
 	if _contact_cooldown > 0.0:
 		_contact_cooldown -= delta
+	_tick_burn(delta)
 
 	var speed: float = stats.move_speed if stats else 90.0
 	var to_player: Vector2 = _player.global_position - global_position
 	var dir: Vector2 = to_player.normalized()
+	var dist: float = to_player.length()
 
 	# 伏击体状态机：潜伏（静止、不吃伤害）→ 破土前摇 → 并入常规追击
 	if _ambush_state == 1:
 		velocity = Vector2.ZERO
 		var alert: float = stats.alert_radius if stats else 320.0
-		if to_player.length() < alert:
+		if dist < alert:
 			_ambush_state = 2
 			_ambush_t = 0.35
 			Sfx.play("hit", 0.6, 2.0)
@@ -182,17 +213,9 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if is_boss:
-		_boss_update(delta, speed, dir)
-	elif to_player.length() < 140.0:
-		# 贴身阶段直接朝玩家推：省掉射线，也避免在玩家身边绕圈打转
-		velocity = dir * speed
+		_boss_update(delta, speed, dir, dist)
 	else:
-		# 轻量避障：直线方向前方有障碍柱时切向绕行（无导航网格方案），节流缓存
-		_steer_t -= delta
-		if _steer_t <= 0.0:
-			_steer_t = 0.12
-			_steer_dir = _steer_around_obstacles(dir)
-		velocity = _steer_dir * speed
+		_mob_update(delta, speed, dir, dist)
 	move_and_slide()
 
 	# 接触掉血（§11.4.3）：贴近玩家且冷却结束才扣一次；冲锋命中额外加成
@@ -222,20 +245,110 @@ func _emerge_pop() -> void:
 		b2.set_ignore_time_scale(true)
 		b2.tween_property(outline, "scale", _base_scale, 0.14).set_delay(0.08)
 
-# Boss 专用移动：常规追击 → 蓄力前摇（站桩+变色+低频吼）→ 高速突进 → 冷却。
+# 杂兵移动 + 远程攻击（§11.12）：射程带内冷却好 → 站桩蓄射（染色预警）→ 开火；
+# 太近（< min_range）或冷却中 → 照常追击，玩家贴脸即可破解远程。
+func _mob_update(delta: float, speed: float, dir: Vector2, dist: float) -> void:
+	var r_atk: String = stats.ranged_attack if stats else ""
+	if r_atk == "":
+		_chase(delta, speed, dir, dist)
+		return
+	if _ranged_state == 1:
+		# 蓄射前摇：站桩，读条完朝玩家当前位置开火
+		velocity = Vector2.ZERO
+		_ranged_t -= delta
+		if _ranged_t <= 0.0:
+			_fire_ranged(r_atk)
+			_ranged_state = 0
+			_ranged_cd = stats.ranged_interval
+			_restore_tint()
+		return
+	# 冷却 + 距离带判定
+	_ranged_cd -= delta
+	var in_band: bool = dist <= stats.ranged_range and dist >= stats.ranged_min_range
+	if _ranged_cd <= 0.0 and in_band:
+		_ranged_state = 1
+		_ranged_t = stats.ranged_windup
+		velocity = Vector2.ZERO
+		_flash_tint(Color(0.75, 1.0, 0.45), stats.ranged_windup * 0.6)
+	else:
+		_chase(delta, speed, dir, dist)
+
+# 原有追击逻辑抽出来给近战/远程共用：贴身直推，远处切向绕障
+func _chase(delta: float, speed: float, dir: Vector2, dist: float) -> void:
+	if dist < 140.0:
+		# 贴身阶段直接朝玩家推：省掉射线，也避免在玩家身边绕圈打转
+		velocity = dir * speed
+	else:
+		# 轻量避障：直线方向前方有障碍柱时切向绕行（无导航网格方案），节流缓存
+		_steer_t -= delta
+		if _steer_t <= 0.0:
+			_steer_t = 0.12
+			_steer_dir = _steer_around_obstacles(dir)
+		velocity = _steer_dir * speed
+
+# 远程开火（§11.12）：needle 单发速射 + 挂毒；venom 扇形毒液 + 落地毒云
+func _fire_ranged(kind: String) -> void:
+	if not is_instance_valid(_player):
+		return
+	var dir: Vector2 = (_player.global_position - global_position).normalized()
+	var dmg: float = stats.attack_power * stats.ranged_damage_mult
+	var spawn_pos: Vector2 = global_position + dir * 20.0
+	if kind == "needle":
+		Sfx.play("shoot", 1.4, -4.0)
+		_spawn_bullet(spawn_pos, dir, dmg, 460.0, {
+			"kind": "needle",
+			"poison_dps": stats.ranged_poison_dps,
+			"poison_time": stats.ranged_poison_time,
+			"lifetime": 1.4,
+		})
+	else:
+		Sfx.play("spit", 1.0)
+		var n: int = maxi(1, stats.spray_count)
+		var half: float = deg_to_rad(stats.spray_spread_deg) * 0.5
+		for i in n:
+			var a: float = -half + (2.0 * half * float(i) / maxf(float(n - 1), 1.0)) if n > 1 else 0.0
+			_spawn_bullet(spawn_pos, dir.rotated(a), dmg, 240.0, {
+				"kind": "venom",
+				"poison_dps": stats.ranged_poison_dps,
+				"poison_time": stats.ranged_poison_time,
+				"leaves_cloud": stats.leaves_cloud,
+				"cloud_radius": stats.cloud_radius,
+				"cloud_duration": stats.cloud_duration,
+				"cloud_dps": stats.cloud_dps,
+				"lifetime": 1.6,
+			})
+
+func _spawn_bullet(pos: Vector2, dir: Vector2, dmg: float, spd: float, opts: Dictionary) -> void:
+	if EnemyBullet._alive_count >= EnemyBullet.ALIVE_CAP:
+		return   # 弹幕硬上限，防极端情况刷爆
+	var b: Area2D = ENEMY_BULLET_SCENE.instantiate()
+	b.position = pos   # 先摆位再入树（池化教训同款）
+	get_tree().current_scene.add_child(b)
+	b.setup(dir, dmg, spd, opts)
+
+# Boss 专用：常规追击 → 蓄力前摇（站桩+变色+低频吼）→ 高速突进 → 冷却；
+# 技能独立冷却（§11.13）：非冲锋状态且技能冷却好时，随机三选一施放。
 # 前摇 0.55s 是「可躲窗口」：玩家 220px/s 能在突进路径上侧移出判定圈。
 # Boss 不做绕障（体型大、直线冲锋更符合直觉），撞柱交给 move_and_slide 滑动。
-func _boss_update(delta: float, speed: float, dir: Vector2) -> void:
+func _boss_update(delta: float, speed: float, dir: Vector2, dist: float) -> void:
 	match _charge_state:
 		0:
 			_charge_cd -= delta
+			_skill_cd -= delta
 			velocity = dir * speed
-			if _charge_cd <= 0.0 and global_position.distance_to(_player.global_position) < 560.0:
+			var can_charge: bool = _charge_cd <= 0.0 and dist < 560.0
+			var can_skill: bool = _skill_cd <= 0.0 and dist < (stats.skill_range if stats else 640.0)
+			if can_skill and not can_charge:
+				# 优先冲锋时机让位（贴脸冲锋威胁更直接）；反之技能先手
+				_begin_skill(dist)
+			elif can_charge:
 				_charge_state = 1
 				_charge_t = 0.55
 				velocity = Vector2.ZERO
 				_flash_tint(Color(1.0, 0.32, 0.32), 0.12)
 				Sfx.play("hurt", 0.45, 2.0)
+			elif can_skill:
+				_begin_skill(dist)
 		1:
 			velocity = Vector2.ZERO
 			_charge_t -= delta
@@ -252,6 +365,96 @@ func _boss_update(delta: float, speed: float, dir: Vector2) -> void:
 				_charge_cd = stats.charge_interval if stats else 3.4
 				_restore_tint()
 				Juice.add_trauma(0.18)
+		3:
+			# 技能前摇：站桩蓄力（颜色按技能区分），读条完出招
+			velocity = Vector2.ZERO
+			_charge_t -= delta
+			if _charge_t <= 0.0:
+				_cast_skill()
+
+# 随机三选一（不连续重复同一招），按技能定前摇时长与预警色
+func _begin_skill(dist: float) -> void:
+	var pool: Array[int] = [0, 1]
+	if stats and stats.summon_stats != null:
+		pool.append(2)   # 没配召唤谱就只在弹幕/喷息里选
+	if pool.has(_last_skill) and pool.size() > 1:
+		pool.erase(_last_skill)
+	_skill_pending = pool[randi() % pool.size()]
+	_last_skill = _skill_pending
+	_charge_state = 3
+	_charge_t = 0.55 if _skill_pending != 2 else 0.7
+	velocity = Vector2.ZERO
+	match _skill_pending:
+		0: _flash_tint(Color(0.85, 0.45, 1.0), 0.12)   # 弹幕环：紫
+		1: _flash_tint(Color(0.65, 1.0, 0.4), 0.12)    # 剧毒喷息：毒绿
+		2: _flash_tint(Color(1.0, 0.94, 0.75), 0.12)   # 巢群召唤：暖白
+	Sfx.play("hurt", 0.6, 3.0)
+
+# 技能出招瞬间：弹全部立即生成（扇形瞄准玩家当前位置），随后回追击态
+func _cast_skill() -> void:
+	_charge_state = 0
+	_charge_cd = maxf(_charge_cd, 1.2)   # 出招后冲锋至少再等 1.2s，节奏可读
+	_skill_cd = stats.skill_interval if stats else 5.5
+	_restore_tint()
+	var dir: Vector2 = (_player.global_position - global_position).normalized()
+	var dmg: float = stats.attack_power * 0.5
+	match _skill_pending:
+		0:
+			# 孢子弹幕：360° 环形中速毒团，无云无毒，纯封锁走位
+			Sfx.play("spit", 0.8)
+			Juice.add_trauma(0.25)
+			var n: int = maxi(6, stats.radial_count)
+			var a0: float = randf() * TAU   # 随机起始角，别让玩家背板站位
+			for i in n:
+				var a: float = a0 + TAU * float(i) / float(n)
+				_spawn_bullet(global_position + Vector2(cos(a), sin(a)) * 30.0,
+					Vector2(cos(a), sin(a)), dmg, 260.0,
+					{"kind": "spore", "lifetime": 2.2, "color": Color(0.85, 0.4, 0.9)})
+		1:
+			# 剧毒喷息：朝玩家扇形毒液，落地/撞柱留毒云，正面区域封锁
+			Sfx.play("spit", 0.9)
+			Juice.add_trauma(0.2)
+			var n2: int = maxi(3, stats.breath_count)
+			var half: float = deg_to_rad(stats.breath_spread_deg) * 0.5
+			for i in n2:
+				var a2: float = -half + (2.0 * half * float(i) / maxf(float(n2 - 1), 1.0)) if n2 > 1 else 0.0
+				_spawn_bullet(global_position + dir * 30.0, dir.rotated(a2),
+					dmg * 0.9, 280.0, {
+						"kind": "venom",
+						"poison_dps": 4.0,
+						"poison_time": 2.5,
+						"leaves_cloud": true,
+						"cloud_radius": 56.0,
+						"cloud_duration": 3.5,
+						"cloud_dps": 12.0,
+						"lifetime": 1.5,
+					})
+		2:
+			# 巢群召唤：从池里取杂兵围在 Boss 周一圈（受同屏上限约束）
+			Sfx.play("hurt", 0.7, 4.0)
+			Juice.add_trauma(0.3)
+			_summon_brood()
+
+# 召唤杂兵：同分裂体一样受 alive<140 上限保护；召唤位避开障碍柱方向也无所谓，
+# 池化敌人入场自动寻路，卡柱会自己绕出来
+func _summon_brood() -> void:
+	var alive := 0
+	for e in get_tree().get_nodes_in_group("enemy"):
+		if e.get("active"):
+			alive += 1
+	var budget: int = mini(stats.summon_count if stats else 3, 140 - alive)
+	if budget <= 0:
+		return
+	var pool: Node = get_tree().get_first_node_in_group("enemy_pool")
+	if pool == null:
+		return
+	for i in budget:
+		var child: Node2D = pool.acquire(get_tree().current_scene) as Node2D
+		if child == null:
+			return
+		child.configure(stats.summon_stats)
+		var a: float = TAU * float(i) / float(budget) + randf() * 0.5
+		child.global_position = global_position + Vector2(cos(a), sin(a)) * 80.0
 
 # 前方 90px 射线检测障碍柱：命中则瞄准「柱缘通过点」（柱侧外缘 58px 处）绕行，
 # 过柱后射线不再命中即回到直线追踪。其余碰撞体交给 move_and_slide 滑动。
@@ -270,6 +473,34 @@ func _steer_around_obstacles(dir: Vector2) -> Vector2:
 	# 通过点：柱心沿切向偏移 58px（柱半径30 + 自身半径14 + 余量）
 	var pass_point: Vector2 = hit.collider.global_position + tangent * 58.0
 	return (pass_point - global_position).normalized()
+
+# ---------------- 燃烧 DoT（火弹枪/喷火枪点燃，刷新制不叠加） ----------------
+# 静默结算：不走 take_damage 的受击音/屏震，燃烧跳数不会刷屏；直接扣血并判死。
+var _burn_dps: float = 0.0
+var _burn_time: float = 0.0
+var _burn_tick_t: float = 0.0
+const BURN_TICK := 0.5
+
+func apply_burn(dps: float, duration: float) -> void:
+	if not active:
+		return
+	_burn_dps = maxf(_burn_dps, dps)
+	_burn_time = duration
+	_burn_tick_t = 0.0
+
+func _tick_burn(delta: float) -> void:
+	if not active or _burn_time <= 0.0:
+		return
+	_burn_time -= delta
+	_burn_tick_t += delta
+	if _burn_tick_t >= BURN_TICK:
+		_burn_tick_t -= BURN_TICK
+		health -= _burn_dps * BURN_TICK
+		if is_boss:
+			EventBus.boss_damaged.emit(maxf(health, 0.0), max_health)
+		if health <= 0.0:
+			_die()
+
 
 func take_damage(amount: float) -> void:
 	if not active:
@@ -358,11 +589,19 @@ func _spawn_splits() -> void:
 # 杂兵 50% 孢子晶体（加分）；10% 医疗包（仅玩家未满血时才掉，满血不掉避免浪费）。
 func _drop_loot() -> void:
 	if is_boss:
+		var bwid: String = WeaponDB.random_unowned(GameState.owned_weapons)
+		if bwid != "":
+			_spawn_pickup("weapon", global_position + Vector2(0.0, 46.0), bwid)
 		for i in 8:
 			var a: float = TAU * float(i) / 8.0
 			_spawn_pickup("crystal", global_position + Vector2(cos(a), sin(a)) * 42.0)
 		_spawn_pickup("heal", global_position + Vector2(0.0, -46.0))
 		return
+	# 武器箱：杂兵 4% 概率掉一把未拥有的武器；全收集后不再掉，落回普通掉落
+	if randf() < 0.04:
+		var wid: String = WeaponDB.random_unowned(GameState.owned_weapons)
+		if wid != "":
+			_spawn_pickup("weapon", global_position, wid)
 	var r := randf()
 	var kind := ""
 	if r < 0.10:
@@ -375,8 +614,9 @@ func _drop_loot() -> void:
 		return
 	_spawn_pickup(kind, global_position)
 
-func _spawn_pickup(kind: String, pos: Vector2) -> void:
+func _spawn_pickup(kind: String, pos: Vector2, weapon_id: String = "") -> void:
 	var pk: Node2D = PICKUP_SCENE.instantiate()
 	pk.kind = kind
+	pk.weapon_id = weapon_id
 	pk.position = pos   # 先摆位再入树（池化教训同款）
 	get_tree().current_scene.add_child(pk)

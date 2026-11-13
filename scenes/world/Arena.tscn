@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="Script" path="res://scripts/world/Arena.gd" id="1_arena"]
 [ext_resource type="Script" path="res://scripts/enemy/Spawner.gd" id="2_spawn"]
@@ -19,6 +19,8 @@
 [ext_resource type="Resource" path="res://assets/data/enemy_lurker.tres" id="17_lurker"]
 [ext_resource type="Resource" path="res://assets/data/enemy_miasma.tres" id="18_miasma"]
 [ext_resource type="Resource" path="res://assets/data/enemy_splitter.tres" id="19_splitter"]
+[ext_resource type="Resource" path="res://assets/data/enemy_spitter.tres" id="21_spitter"]
+[ext_resource type="Resource" path="res://assets/data/enemy_sprayer.tres" id="22_sprayer"]
 [ext_resource type="PackedScene" path="res://scenes/ui/UpgradeUI.tscn" id="20_upgrade"]
 
 [sub_resource type="NavigationPolygon" id="nav_poly"]
@@ -45,7 +47,7 @@ groups=["player"]
 [node name="Spawner" type="Node2D" parent="."]
 script = ExtResource("2_spawn")
 enemy_scene = ExtResource("4_enemy")
-variants = Array[EnemyStats]([ExtResource("12_walker"), ExtResource("13_runner"), ExtResource("14_brute"), ExtResource("17_lurker"), ExtResource("18_miasma"), ExtResource("19_splitter")])
+variants = Array[EnemyStats]([ExtResource("12_walker"), ExtResource("13_runner"), ExtResource("14_brute"), ExtResource("17_lurker"), ExtResource("18_miasma"), ExtResource("19_splitter"), ExtResource("21_spitter"), ExtResource("22_sprayer")])
 boss_stats = ExtResource("16_boss")
 elite_times = Array[float]([180.0, 480.0, 900.0])
 

@@ -20,3 +20,15 @@ polygon = PackedVector2Array(0, -14, 10, 0, 0, 14, -10, 0)
 [node name="CrystalCore" type="Polygon2D" parent="."]
 color = Color(1, 1, 1, 0.55)
 polygon = PackedVector2Array(0, -7, 5, 0, 0, 7, -5, 0)
+
+[node name="WeaponVis" type="Polygon2D" parent="."]
+color = Color(0.85, 0.62, 0.16, 1)
+polygon = PackedVector2Array(-14, -11, 14, -11, 14, 11, -14, 11)
+
+[node name="WeaponShine" type="Polygon2D" parent="."]
+color = Color(1, 0.9, 0.45, 0.85)
+polygon = PackedVector2Array(-12, -9, 12, -9, 12, -4, -12, -4)
+
+[node name="WeaponIcon" type="Sprite2D" parent="."]
+position = Vector2(0, 2)
+scale = Vector2(0.38, 0.38)

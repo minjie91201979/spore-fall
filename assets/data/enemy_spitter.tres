@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_splitter.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "毒针孢 Spitter"
+hearing = 300.0
+move_speed = 72.0
+max_health = 45.0
+attack_power = 7.0
+alert_radius = 420.0
+behavior = "walk"
+tint = Color(0.72, 1.0, 0.55, 1)
+blood_color = Color(0.4, 0.65, 0.15, 1)
+sprite_texture = ExtResource("2_tex")
+scale_mult = 0.95
+spawn_weight_tier0 = 0.1
+spawn_weight_per_tier = 0.15
+contact_radius = 24.0
+score_value = 18
+ranged_attack = "needle"
+ranged_interval = 2.4
+ranged_range = 420.0
+ranged_min_range = 130.0
+ranged_windup = 0.35
+ranged_damage_mult = 0.85
+ranged_poison_dps = 4.0
+ranged_poison_time = 2.5
+spray_count = 1
+leaves_cloud = false

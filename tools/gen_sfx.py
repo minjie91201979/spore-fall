@@ -87,3 +87,41 @@ beat = (beat_phase < 0.06).astype(float) * 0.35 + ((beat_phase > 0.2) & (beat_ph
 x += np.sin(2 * np.pi * 48 * t) * beat
 x *= 0.9
 save("bgm_loop", x, outdir)
+
+# 喷吐（spit）：毒液/弹幕发射音 = 带通湿润噪声噗 + 下滑气泡音
+n = int(SR * 0.22)
+t = np.arange(n) / SR
+wet = noise(n, 6) * env_exp(n, 26)
+# 低通近似：滑动平均一次让噪声变「噗」而不是「沙」
+wet = np.convolve(wet, np.ones(12) / 12.0, mode="same")
+f = 520.0 * np.exp(-t * 9.0) + 140.0  # 气泡下滑
+phase = 2 * np.pi * np.cumsum(f) / SR
+x = wet * 0.8 + 0.35 * np.sin(phase) * env_exp(n, 18)
+save("spit", x * 0.55, outdir)
+
+# 霰弹（shotgun）：低频厚噪爆 + 深衰减，一记闷雷
+n = int(SR * 0.30)
+t = np.arange(n) / SR
+boom = noise(n, 4) * env_exp(n, 18)
+boom = np.convolve(boom, np.ones(28) / 28.0, mode="same")   # 强低通 = 闷
+sub = 0.5 * np.sin(2 * np.pi * 70.0 * t * np.exp(-t * 6.0)) * env_exp(n, 30)
+save("shotgun", (boom * 1.1 + sub) * 0.9, outdir)
+
+# 激光（laser）：下滑方波 zap + 轻噪声，科幻感
+n = int(SR * 0.16)
+t = np.arange(n) / SR
+f = 1800.0 * np.exp(-t * 22.0) + 220.0
+phase = 2 * np.pi * np.cumsum(f) / SR
+sq = np.sign(np.sin(phase))
+x = sq * env_exp(n, 30) + 0.12 * noise(n, 8) * env_exp(n, 50)
+save("laser", x * 0.5, outdir)
+
+# 喷火（flame）：短促湿润低通噪声噗（连喷时形成连续火噪）
+n = int(SR * 0.12)
+t = np.arange(n) / SR
+x = noise(n, 5) * env_exp(n, 40)
+x = np.convolve(x, np.ones(20) / 20.0, mode="same")
+f = 180.0 + 90.0 * np.sin(2 * np.pi * 22.0 * t)
+phase = 2 * np.pi * np.cumsum(f) / SR
+x = x + 0.18 * np.sin(phase) * env_exp(n, 26)
+save("flame", x * 0.6, outdir)

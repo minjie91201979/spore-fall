@@ -56,13 +56,14 @@ func _process(delta: float) -> void:
 	if _t >= _duration + FADE_TIME:
 		_expire()
 		return
-	# 伤害结算：玩家在半径内每 TICK 秒扣一次（直接复用 take_damage 的受击反馈）
+	# 伤害结算：玩家在半径内每 TICK 秒扣一次——走轻量受击（light=true）：
+	# 持续毒 tick 不触发 hitstop/受伤吼，否则站在毒雾里会被 0.04 倍速锁死
 	_tick_t += real_delta
 	if _tick_t >= TICK and _t < _duration:
 		_tick_t -= TICK
 		if is_instance_valid(_player) and global_position.distance_to(_player.global_position) < _radius \
 				and float(_player.get("health")) > 0.0:
-			_player.take_damage(_dps * TICK)
+			_player.take_damage(_dps * TICK, true)
 	# 末尾整体淡出（modulate 会乘到所有 draw 命令上）
 	var fade_start: float = _duration
 	modulate.a = clampf(1.0 - (_t - fade_start) / FADE_TIME, 0.0, 1.0)

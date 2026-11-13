@@ -5,11 +5,13 @@ extends Node
 var trauma: float = 0.0
 
 # 击杀/受击时短暂放慢时间，制造顿挫感
+# 注意：恢复计时必须走真实时间（ignore_time_scale=true），否则减速期间
+# 计时器本身也被拖慢 25 倍，0.05s 的顿挫会被锁成 1.25s 的幻灯片
 func hitstop(time_scale: float = 0.05, duration: float = 0.08) -> void:
 	if Engine.time_scale < 1.0:
 		return
 	Engine.time_scale = time_scale
-	await get_tree().create_timer(duration).timeout
+	await get_tree().create_timer(duration, true, false, true).timeout
 	Engine.time_scale = 1.0
 
 # 累加震动能量，CameraShake 读取后做衰减

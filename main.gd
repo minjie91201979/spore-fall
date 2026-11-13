@@ -7,6 +7,8 @@ signal game_over(final_score: int, survived_time: float)
 signal weapon_leveled(level: int)
 signal upgrade_ready(choices: Array)
 signal upgrade_applied(id: String)
+signal weapon_acquired(id: String)   # 捡到新武器：武器栏加格子并自动切换
+signal weapon_switched(id: String)   # 切换当前武器：Player / 武器栏 / HUD 各自刷新
 
 var survived_time: float = 0.0
 var score: int = 0
@@ -23,6 +25,12 @@ var _career_tick: float = 0.0   # 存活类成就每秒检查一次，不必每�
 var weapon_level: int = 1
 var crystals: int = 0
 var upgrades_taken: int = 0
+
+# ---------- 武器背包 ----------
+# 初始只有沙漠飞鹰；怪物掉落武器箱获得新武器，之后随时切换。
+# owned_weapons 顺序始终跟随 WeaponDB.ORDER，武器栏格子位置固定不跳动。
+var owned_weapons: Array = ["deagle"]
+var current_weapon: String = "deagle"
 
 # 局内 Build 加成：卡片只改这里，Player / Bullet / Pickup 各自读取重算，
 # 谁都不必认识「卡片」这个概念。乘区默认 1.0、加区默认 0；每局 start_run 全量重置。
@@ -86,6 +94,29 @@ func _add_key_action(action_name: String, keycode: int) -> void:
 	ev.physical_keycode = keycode
 	InputMap.action_add_event(action_name, ev)
 
+# ---------- 武器获取与切换 ----------
+# 捡到新武器：加入背包并立刻切换（新鲜感优先）；已有则返回 false（掉落方改发晶体补偿）
+func acquire_weapon(id: String) -> bool:
+	if not WeaponDB.DATA.has(id) or owned_weapons.has(id):
+		return false
+	owned_weapons.append(id)
+	# 保持武器栏顺序稳定：按 ORDER 重排
+	var sorted: Array = []
+	for wid in WeaponDB.ORDER:
+		if owned_weapons.has(wid):
+			sorted.append(wid)
+	owned_weapons = sorted
+	weapon_acquired.emit(id)
+	switch_weapon(id)
+	return true
+
+func switch_weapon(id: String) -> void:
+	if not owned_weapons.has(id) or current_weapon == id:
+		return
+	current_weapon = id
+	weapon_switched.emit(id)
+	Sfx.play("pickup", 1.2, -4.0)
+
 # ---------- 局状态 ----------
 func start_run() -> void:
 	survived_time = 0.0
@@ -98,6 +129,8 @@ func start_run() -> void:
 	weapon_level = 1
 	crystals = 0
 	upgrades_taken = 0
+	owned_weapons = ["deagle"]   # 每局从沙漠飞鹰重新开始
+	current_weapon = "deagle"
 	mods = default_mods()
 	taken_upgrades.clear()
 	# 上一局若在选卡界面中退出（重载/返回标题），别把暂停状态带进新一局
