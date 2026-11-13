@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
-[ext_resource type="Texture2D" path="res://assets/characters/enemy_splitter.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_spitter.png" id="2_tex"]
 
 [resource]
 script = ExtResource("1_stats")
@@ -12,7 +12,7 @@ max_health = 45.0
 attack_power = 7.0
 alert_radius = 420.0
 behavior = "walk"
-tint = Color(0.72, 1.0, 0.55, 1)
+tint = Color(1, 1, 1, 1)
 blood_color = Color(0.4, 0.65, 0.15, 1)
 sprite_texture = ExtResource("2_tex")
 scale_mult = 0.95

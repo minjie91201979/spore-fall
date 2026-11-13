@@ -32,6 +32,16 @@ func _ready() -> void:
 	d.position = Vector2(0, 200)
 	arena.add_child(d)
 	await get_tree().create_timer(0.5).timeout
-	get_viewport().get_texture().get_image().save_png("C:/Users/musou/Desktop/object/spore-fall/build/layer_probe.png")
+	_save_shot("layer_probe.png")
 	print("PROBE DONE")
 	get_tree().quit(0)
+
+func _save_shot(file_name: String) -> void:
+	var dir := ProjectSettings.globalize_path("res://build")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var tex := get_viewport().get_texture()
+	if tex == null:
+		return
+	var img := tex.get_image()
+	if img:
+		img.save_png(dir.path_join(file_name))

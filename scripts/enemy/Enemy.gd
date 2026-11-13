@@ -1,7 +1,7 @@
 extends CharacterBody2D
 # 自动索敌 + 接触掉血 + 受击 + 死亡回收（§11.4.2 / §11.4.3）。
-# 用 NavigationAgent2D 走避障路径，绕开竞技场中央的障碍柱；
-# 目标实时设为玩家位置，由导航网格算出绕障路点。
+# 杂兵追击用 NavigationAgent2D：Arena 会把固定方柱和随机柱烘焙成洞，这里沿下一路径点走。
+# Boss 不寻路，直线冲锋，撞柱交给 move_and_slide。
 # 池化（§11.9）：死亡不再 queue_free，归还 ObjectPool 复用；粒子改为「复制一份留在原地爆」，
 # 本体带着粒子节点回池，保证每次死亡都有击杀爆裂。
 # §11.12 远程变种：射程带内站桩前摇后开火（毒针单发 / 毒液扇喷），太近收枪转贴身。
@@ -33,10 +33,9 @@ var _charge_state: int = 0
 var _charge_t: float = 0.0
 var _charge_cd: float = 3.4
 var _charge_dir: Vector2 = Vector2.RIGHT
-# 避障射线节流（§11.7 压测优化）：近距离直接贴脸不打射线；远距离 0.12s 缓存一次，
-# 200 只同屏时射线调用量从 12000/s 降到约 1600/s。
-var _steer_t: float = 0.0
-var _steer_dir: Vector2 = Vector2.ZERO
+# 寻路节流：target_position 每次赋值都会发一次查询，不能每帧打。
+const NAV_REPATH_SEC := 0.20
+var _nav_repath_t: float = 0.0
 
 # 伏击状态机（§11.5 伏击体）：0 = 无伏击/已进入追击，1 = 潜伏（半埋半透明、静止），
 # 2 = 破土前摇。潜伏中不吃接触伤害，玩家进入警觉半径才炸出来高速追击。
@@ -66,10 +65,10 @@ func _ready() -> void:
 	# 画质档位注册（§11.6）：描边 pass 与击杀粒子密度
 	Quality.register_outline(outline)
 	Quality.register_particles(particles)
-	# 延后一帧等导航地图同步完成（Godot 4.x 推荐），再配置 agent 参数
-	await get_tree().physics_frame
-	nav_agent.path_desired_distance = 6.0
-	nav_agent.target_desired_distance = 6.0
+	nav_agent.path_desired_distance = 16.0
+	nav_agent.target_desired_distance = 10.0
+	# 池里停放的个体不要每帧做寻路查询；出场后 _physics_process 再打开
+	nav_agent.set_physics_process(false)
 
 # 池化复用前重置状态（ObjectPool.acquire 调用）
 func reset_for_reuse() -> void:
@@ -81,8 +80,7 @@ func reset_for_reuse() -> void:
 	_charge_state = 0
 	_charge_t = 0.0
 	_charge_cd = stats.charge_interval if stats else 3.4
-	_steer_t = 0.0
-	_steer_dir = Vector2.ZERO
+	_nav_repath_t = 0.0
 	_base_tint = stats.tint if stats else Color.WHITE
 	_is_split_child = false          # 池化复用：清掉上一只的分裂子体标记
 	_size_mult = 1.0
@@ -108,8 +106,7 @@ func configure(s: EnemyStats, hp_mult: float = 1.0, is_split_child: bool = false
 	_charge_state = 0
 	_charge_t = 0.0
 	_charge_cd = s.charge_interval
-	_steer_t = 0.0
-	_steer_dir = Vector2.ZERO
+	_nav_repath_t = 0.0
 	_base_tint = s.tint
 	_setup_ambush(not s.is_boss and s.behavior == "ambush")
 	_ranged_state = 0
@@ -177,8 +174,16 @@ func _flash_tint(c: Color, dur: float) -> void:
 	tw.set_ignore_time_scale(true)
 	tw.tween_property(spr, "modulate", c, dur)
 
+func _set_nav_query(enabled: bool) -> void:
+	if nav_agent.is_physics_processing() == enabled:
+		return
+	nav_agent.set_physics_process(enabled)
+	if enabled:
+		_nav_repath_t = 0.0
+
 func _physics_process(delta: float) -> void:
 	if not active or not is_instance_valid(_player):
+		_set_nav_query(false)
 		return
 	if _contact_cooldown > 0.0:
 		_contact_cooldown -= delta
@@ -191,6 +196,7 @@ func _physics_process(delta: float) -> void:
 
 	# 伏击体状态机：潜伏（静止、不吃伤害）→ 破土前摇 → 并入常规追击
 	if _ambush_state == 1:
+		_set_nav_query(false)
 		velocity = Vector2.ZERO
 		var alert: float = stats.alert_radius if stats else 320.0
 		if dist < alert:
@@ -202,6 +208,7 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 	elif _ambush_state == 2:
+		_set_nav_query(false)
 		velocity = Vector2.ZERO
 		_ambush_t -= delta
 		if _ambush_t <= 0.0:
@@ -213,6 +220,8 @@ func _physics_process(delta: float) -> void:
 		return
 
 	if is_boss:
+		# Boss 直线冲锋，不走导航；关掉查询，避免停放/冲锋时朝默认目标空打寻路
+		_set_nav_query(false)
 		_boss_update(delta, speed, dir, dist)
 	else:
 		_mob_update(delta, speed, dir, dist)
@@ -254,6 +263,7 @@ func _mob_update(delta: float, speed: float, dir: Vector2, dist: float) -> void:
 		return
 	if _ranged_state == 1:
 		# 蓄射前摇：站桩，读条完朝玩家当前位置开火
+		_set_nav_query(false)
 		velocity = Vector2.ZERO
 		_ranged_t -= delta
 		if _ranged_t <= 0.0:
@@ -266,6 +276,7 @@ func _mob_update(delta: float, speed: float, dir: Vector2, dist: float) -> void:
 	_ranged_cd -= delta
 	var in_band: bool = dist <= stats.ranged_range and dist >= stats.ranged_min_range
 	if _ranged_cd <= 0.0 and in_band:
+		_set_nav_query(false)
 		_ranged_state = 1
 		_ranged_t = stats.ranged_windup
 		velocity = Vector2.ZERO
@@ -273,18 +284,20 @@ func _mob_update(delta: float, speed: float, dir: Vector2, dist: float) -> void:
 	else:
 		_chase(delta, speed, dir, dist)
 
-# 原有追击逻辑抽出来给近战/远程共用：贴身直推，远处切向绕障
-func _chase(delta: float, speed: float, dir: Vector2, dist: float) -> void:
-	if dist < 140.0:
-		# 贴身阶段直接朝玩家推：省掉射线，也避免在玩家身边绕圈打转
+# 近战/远程共用的追击：沿导航网格的下一路径点走，柱子被烘焙成洞后会绕开。
+# 路径还没返回时（下一站就在脚下）先朝玩家直线走，避免出生那一帧站桩。
+func _chase(delta: float, speed: float, dir: Vector2, _dist: float) -> void:
+	_set_nav_query(true)
+	_nav_repath_t -= delta
+	if _nav_repath_t <= 0.0:
+		_nav_repath_t = NAV_REPATH_SEC
+		nav_agent.target_position = _player.global_position
+	var next: Vector2 = nav_agent.get_next_path_position()
+	var to_next: Vector2 = next - global_position
+	if to_next.length_squared() <= 36.0:
 		velocity = dir * speed
 	else:
-		# 轻量避障：直线方向前方有障碍柱时切向绕行（无导航网格方案），节流缓存
-		_steer_t -= delta
-		if _steer_t <= 0.0:
-			_steer_t = 0.12
-			_steer_dir = _steer_around_obstacles(dir)
-		velocity = _steer_dir * speed
+		velocity = to_next.normalized() * speed
 
 # 远程开火（§11.12）：needle 单发速射 + 挂毒；venom 扇形毒液 + 落地毒云
 func _fire_ranged(kind: String) -> void:
@@ -435,8 +448,8 @@ func _cast_skill() -> void:
 			Juice.add_trauma(0.3)
 			_summon_brood()
 
-# 召唤杂兵：同分裂体一样受 alive<140 上限保护；召唤位避开障碍柱方向也无所谓，
-# 池化敌人入场自动寻路，卡柱会自己绕出来
+# 召唤杂兵：同分裂体一样受 alive<140 上限保护。
+# 入场后走杂兵同一套导航追击，会绕开已经烘焙进网格的柱子。
 func _summon_brood() -> void:
 	var alive := 0
 	for e in get_tree().get_nodes_in_group("enemy"):
@@ -455,24 +468,6 @@ func _summon_brood() -> void:
 		child.configure(stats.summon_stats)
 		var a: float = TAU * float(i) / float(budget) + randf() * 0.5
 		child.global_position = global_position + Vector2(cos(a), sin(a)) * 80.0
-
-# 前方 90px 射线检测障碍柱：命中则瞄准「柱缘通过点」（柱侧外缘 58px 处）绕行，
-# 过柱后射线不再命中即回到直线追踪。其余碰撞体交给 move_and_slide 滑动。
-func _steer_around_obstacles(dir: Vector2) -> Vector2:
-	var space := get_world_2d().direct_space_state
-	var query := PhysicsRayQueryParameters2D.create(
-		global_position, global_position + dir * 90.0, 1, [get_rid()])
-	var hit := space.intersect_ray(query)
-	if hit.is_empty() or not hit.collider.is_in_group("obstacle"):
-		return dir
-	var to_center: Vector2 = hit.collider.global_position - global_position
-	var away: Vector2 = -to_center.normalized()
-	var tangent: Vector2 = Vector2(-away.y, away.x)
-	if tangent.dot(dir) < 0.0:
-		tangent = -tangent
-	# 通过点：柱心沿切向偏移 58px（柱半径30 + 自身半径14 + 余量）
-	var pass_point: Vector2 = hit.collider.global_position + tangent * 58.0
-	return (pass_point - global_position).normalized()
 
 # ---------------- 燃烧 DoT（火弹枪/喷火枪点燃，刷新制不叠加） ----------------
 # 静默结算：不走 take_damage 的受击音/屏震，燃烧跳数不会刷屏；直接扣血并判死。

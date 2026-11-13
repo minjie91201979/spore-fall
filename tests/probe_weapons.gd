@@ -140,6 +140,60 @@ func _run() -> void:
 	var res: bool = GameState.acquire_weapon("flamethrower")   # 已拥有 → false
 	_check("acquire_dup_rejected", res == false and GameState.owned_weapons.size() == owned_before)
 
+	# ---- 9) 分裂射：每张卡只加 1 条弹道，成长型武器不再加两次 ----
+	Input.action_release("attack")
+	_check("split_deagle_base", _count_fired(player, "deagle", 1, 0) == 1)
+	_check("split_deagle_once", _count_fired(player, "deagle", 1, 1) == 2)
+	_check("split_deagle_lv3", _count_fired(player, "deagle", 3, 1) == 3)
+	_check("split_shotgun", _count_fired(player, "shotgun", 1, 1) == 7)
+	_check("split_flame", _count_fired(player, "flamethrower", 1, 1) == 2)
+	_check("split_firerifle", _count_fired(player, "firerifle", 1, 1) == 2)
+	_check("split_laser_lv6", _count_fired(player, "laser", 6, 2) == 5)
+	GameState.mods["projectiles"] = 0
+	GameState.weapon_level = 1
+	GameState.current_weapon = "deagle"
+	player._apply_weapon_level()
+	GameState.apply_upgrade("projectiles")
+	_check("split_card_deagle", _count_fired(player, "deagle", 1, int(GameState.mods.projectiles)) == 2)
+
+	# ---- 10) 键盘按住连发：冷却归零的下一物理帧再开火，不等系统按键连发 ----
+	Input.action_release("attack")
+	GameState.current_weapon = "deagle"
+	GameState.weapon_level = 1
+	GameState.mods["projectiles"] = 0
+	player._apply_weapon_level()
+	for b in get_tree().get_nodes_in_group("player_bullet"):
+		b._release()
+	player._fire_cd = 0.0
+	Input.action_press("attack")
+	await get_tree().physics_frame
+	var hold_1: int = get_tree().get_nodes_in_group("player_bullet").size()
+	await get_tree().physics_frame
+	var hold_2: int = get_tree().get_nodes_in_group("player_bullet").size()
+	player._fire_cd = 0.0
+	await get_tree().physics_frame
+	var hold_3: int = get_tree().get_nodes_in_group("player_bullet").size()
+	Input.action_release("attack")
+	player._fire_cd = 0.0
+	await get_tree().physics_frame
+	var hold_4: int = get_tree().get_nodes_in_group("player_bullet").size()
+	_check("hold_fires_immediately", hold_1 == 1)
+	_check("hold_respects_interval", hold_2 == 1)
+	_check("hold_refires_when_ready", hold_3 == 2)
+	_check("hold_stops_on_release", hold_4 == 2)
+
+func _count_fired(player: Node, weapon_id: String, level: int, proj_mod: int) -> int:
+	Input.action_release("attack")
+	GameState.current_weapon = weapon_id
+	GameState.weapon_level = level
+	GameState.mods["projectiles"] = proj_mod
+	player._apply_weapon_level()
+	for b in get_tree().get_nodes_in_group("player_bullet"):
+		b._release()
+	player._fire_cd = 0.0
+	player.fire()
+	return get_tree().get_nodes_in_group("player_bullet").size()
+
 func _spawn_enemy(arena: Node, player: Node2D, offset: Vector2) -> Node2D:
 	var scene: PackedScene = load("res://scenes/world/Enemy.tscn")
 	var e: Node2D = scene.instantiate()

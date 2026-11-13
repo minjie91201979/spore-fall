@@ -254,7 +254,7 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.360784, 0.458824, 0.482353, 1)
 theme_override_font_sizes/font_size = 12
-text = "WASD / 方向键 移动　·　空格 开火"
+text = "WASD / 方向键 移动　·　空格按住开火　·　1–5 切换武器"
 horizontal_alignment = 1
 
 [node name="TouchHint" type="Label" parent="Hints"]
@@ -269,5 +269,5 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.360784, 0.458824, 0.482353, 1)
 theme_override_font_sizes/font_size = 12
-text = "左半屏拖动移动　·　右下 FIRE 开火"
+text = "左半屏拖动移动　·　右下 FIRE 按住连发"
 horizontal_alignment = 1

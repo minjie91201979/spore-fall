@@ -115,8 +115,8 @@ func _run() -> void:
 
 	# ---- 6) 弹幕命中玩家挂毒（venom 直设玩家身上） ----
 	var hp_before: float = player.health
-	player.apply_poison(8.0, 1.0)   # 刷新制：取更高 dps
-	_check("poison_refresh_max_dps", true)   # 无崩溃即通过（刷新逻辑见 3 的掉血断言）
+	player.apply_poison(8.0, 1.0)   # 刷新制：取更高 dps，时长重置而不是叠加
+	_check("poison_refresh_max_dps", is_equal_approx(player._poison_dps, 8.0) and is_equal_approx(player._poison_time, 1.0))
 	for i in 50:
 		await get_tree().physics_frame
 	_check("poison_continues", player.health < hp_before)

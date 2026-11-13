@@ -20,13 +20,22 @@ func _initialize() -> void:
 	p.global_position = Vector2.ZERO
 	var miasma = load("res://assets/data/enemy_miasma.tres")
 	var splitter = load("res://assets/data/enemy_splitter.tres")
+	var spitter = load("res://assets/data/enemy_spitter.tres")
+	var sprayer = load("res://assets/data/enemy_sprayer.tres")
 	var pc_script = load("res://scripts/fx/PoisonCloud.gd")
 
-	# ---------- 参数谱接线 ----------
+	# ---------- 参数谱接线（8 个杂兵变种，远程两种不再共用别人的脸） ----------
 	var variants: Array = spawner2.get("variants") if spawner2 else []
-	var wired: bool = variants.size() == 6 and miasma.behavior == "miasma" \
+	var spit_path: String = spitter.sprite_texture.resource_path if spitter.sprite_texture else ""
+	var spray_path: String = sprayer.sprite_texture.resource_path if sprayer.sprite_texture else ""
+	var wired: bool = variants.size() == 8 and miasma.behavior == "miasma" \
 		and splitter.behavior == "split" and miasma.sprite_texture != null \
-		and splitter.sprite_texture != null
+		and splitter.sprite_texture != null \
+		and spitter.ranged_attack == "needle" and sprayer.ranged_attack == "venom" \
+		and spit_path.ends_with("enemy_spitter.png") \
+		and spray_path.ends_with("enemy_sprayer.png") \
+		and spitter.sprite_texture != splitter.sprite_texture \
+		and sprayer.sprite_texture != miasma.sprite_texture
 	print("VARIANTS_WIRED ok=%s count=%d" % [wired, variants.size()])
 
 	# ---------- 毒雾孢：死亡留雾 + 持续伤害 ----------
