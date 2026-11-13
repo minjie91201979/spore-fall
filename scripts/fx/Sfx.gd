@@ -84,7 +84,6 @@ func start_ambient(name: String) -> void:
 		return
 	var p := _pick_ambient()
 	var s: AudioStream = STREAMS[name]
-	s.loop = true
 	p.stream = s
 	p.volume_db = VOLUMES.get(name, -20.0)
 	p.play(0.0)
