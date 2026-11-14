@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_burrower.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "钻颅孢 Burrower"
+hearing = 380.0
+move_speed = 130.0
+max_health = 34.0
+attack_power = 12.0
+alert_radius = 360.0
+behavior = "ambush"
+tint = Color(0.46, 0.26, 0.72, 1)
+blood_color = Color(0.3, 0.16, 0.48, 1)
+sprite_texture = ExtResource("2_tex")
+scale_mult = 0.95
+spawn_weight_tier0 = 0.12
+spawn_weight_per_tier = 0.1
+contact_radius = 24.0
+score_value = 18

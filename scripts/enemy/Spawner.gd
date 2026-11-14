@@ -115,3 +115,8 @@ func _pick_variant() -> EnemyStats:
 		if roll <= 0.0:
 			return variants[i]
 	return variants[variants.size() - 1]
+
+# 运行时向随机池追加一只变种（WaveMode 在第二波注入新怪）。去重避免重复累加权重。
+func add_variant(s: EnemyStats) -> void:
+	if s and not variants.has(s):
+		variants.append(s)

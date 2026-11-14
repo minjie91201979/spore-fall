@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SporeFall · 第二波设计文档 — 深巢反扑</title>
+<style>
+  :root{
+    --bg:#070b0f; --panel:#0d141b; --panel2:#111b24; --line:#1d2c38;
+    --cyan:#28d9cc; --cyan-dim:#7fb9b3; --pink:#f24773; --pink-dim:#c97a92;
+    --txt:#cfe3e0; --muted:#7d949b; --gold:#e9c46a; --glow:#5ef2c4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:radial-gradient(1200px 700px at 70% -10%, #10202a 0%, var(--bg) 60%);color:var(--txt);
+    font-family:"Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;line-height:1.6;padding:40px 20px}
+  .wrap{max-width:1080px;margin:0 auto}
+  header{border:1px solid var(--line);border-radius:16px;padding:28px 32px;background:linear-gradient(180deg,var(--panel2),var(--panel));
+    box-shadow:0 0 0 1px rgba(40,217,204,.06),0 18px 50px rgba(0,0,0,.5)}
+  .kick{color:var(--cyan);letter-spacing:.32em;font-size:12px;text-transform:uppercase}
+  h1{font-size:34px;margin:6px 0 4px;color:#fff;letter-spacing:.04em}
+  h1 .accent{color:var(--pink)}
+  .sub{color:var(--muted);font-size:14px}
+  .lore{margin-top:18px;padding:14px 16px;border-left:3px solid var(--cyan);background:#0a1218;border-radius:0 10px 10px 0;font-size:14px;color:var(--cyan-dim)}
+  section{margin-top:34px}
+  h2{font-size:20px;color:#fff;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  h2 .bar{width:6px;height:22px;background:linear-gradient(var(--cyan),var(--pink));border-radius:3px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  .card{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+  .card .top{padding:16px 18px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line)}
+  .swatch{width:46px;height:46px;border-radius:10px;border:1px solid rgba(255,255,255,.15);flex:0 0 auto;box-shadow:inset 0 0 12px rgba(0,0,0,.5)}
+  .nm{font-size:17px;color:#fff;font-weight:600}
+  .en{font-size:12px;color:var(--muted);letter-spacing:.08em}
+  .role{margin-left:auto;font-size:11px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);color:var(--cyan-dim)}
+  .role.boss{color:var(--pink);border-color:#3a2230;background:#1a0f16}
+  .body{padding:14px 18px;font-size:13.5px}
+  .body p{color:var(--txt);margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  td{padding:4px 6px;border-top:1px solid #16242e}
+  td:first-child{color:var(--muted);width:42%}
+  td:last-child{color:#eaf6f3;text-align:right;font-variant-numeric:tabular-nums}
+  .beh{display:inline-block;font-size:11px;padding:1px 7px;border-radius:6px;background:#10313a;color:var(--glow);margin-right:4px}
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin-top:6px}
+  .node{flex:1 1 200px;min-width:180px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--panel);position:relative}
+  .node .t{color:var(--cyan);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+  .node .h{color:#fff;font-size:16px;margin:4px 0 6px}
+  .node .d{color:var(--muted);font-size:12.5px}
+  .arrow{flex:0 0 38px;display:flex;align-items:center;justify-content:center;color:var(--pink);font-size:22px}
+  .map{margin-top:8px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px 20px;font-size:13px}
+  .map code{color:var(--glow);background:#0a161a;padding:1px 6px;border-radius:5px;font-size:12px}
+  .tag{font-size:11px;color:var(--muted);border:1px dashed var(--line);border-radius:6px;padding:1px 6px;margin-right:4px}
+  .artgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .artfig{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+  .artfig .ph{background:#f2f3f1;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .artfig .ph img{width:100%;height:100%;object-fit:contain;display:block}
+  .artfig figcaption{padding:9px 12px;font-size:12px;color:var(--cyan-dim);border-top:1px solid var(--line)}
+  .artfig figcaption b{color:#fff;font-weight:600}
+  .shotgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .shotfig{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}
+  .shotfig img{width:100%;display:block}
+  .shotfig figcaption{padding:9px 12px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+  .note{font-size:12.5px;color:var(--muted);margin-bottom:12px}
+  footer{margin-top:36px;color:var(--muted);font-size:12px;text-align:center}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}.arrow{flex-basis:100%;transform:rotate(90deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="kick">SporeFall · Wave 2 Design</div>
+    <h1>第二波 · <span class="accent">深巢反扑</span></h1>
+    <div class="sub">DEEP NEST COUNTEROFFENSIVE — 母巢孢被击溃后，渊巢启动的深层反扑协议</div>
+    <div class="lore">
+      第一波以 <b>母巢孢 · Brood Mother</b> 为核心。当它倒下，翠巢工程（Jade Nest）判定常规母体失效，
+      释放深埋渊巢的「变异备份体」——更厚甲、更迅捷、更致命。第二波由三只新型孢体与一头深渊巨口组成，
+      目标：在玩家换弹的间隙完成清场。
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="bar"></span>波次流转（Wave Flow）</h2>
+    <div class="flow">
+      <div class="node">
+        <div class="t">Wave 1</div>
+        <div class="h">母巢孢 · Brood Mother</div>
+        <div class="d">第一波 BOSS（已有）。HUD 目标：「击溃母巢孢 · 第一波」。</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node" style="border-color:#3a2230;background:#160d13">
+        <div class="t" style="color:var(--pink)">On Defeat</div>
+        <div class="h">「进入下一波」提示卡</div>
+        <div class="d">全屏暗化 + WAVE 2 卡片，5 秒自动继续 / 点「继续」。</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
+        <div class="t">Wave 2</div>
+        <div class="h">深巢反扑 · 三怪一王</div>
+        <div class="d">三新型孢体持续刷出；25 秒后召唤渊噬孢。</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="bar"></span>第二波阵容（3 怪 + 1 BOSS）</h2>
+    <div class="grid">
+
+      <!-- Corroder -->
+      <div class="card">
+        <div class="top">
+          <div class="swatch" style="background:radial-gradient(circle at 35% 30%, #d8e25a, #8a8f1e 70%)"></div>
+          <div>
+            <div class="nm">蚀甲孢</div>
+            <div class="en">CORRODER</div>
+          </div>
+          <div class="role">远程 · 装甲</div>
+        </div>
+        <div class="body">
+          <p>几丁质甲壳覆盖的孢体，背部装甲板可抵挡首轮火力；口器持续滴落酸液，站桩喷吐扇形毒液并在落点留下腐蚀毒云，逼迫玩家走位。</p>
+          <table>
+            <tr><td>行为</td><td><span class="beh">walk</span><span class="beh">venom</span></td></tr>
+            <tr><td>生命 / 移速</td><td>95 / 46</td></tr>
+            <tr><td>攻击 / 听觉 / 警觉</td><td>10 / 300 / 420</td></tr>
+            <tr><td>体型倍率</td><td>1.15（厚甲）</td></tr>
+            <tr><td>毒云</td><td>半径52 · 3.0s · 10/s</td></tr>
+            <tr><td>染色 / 血色</td><td>#ccd64d / #948f1f</td></tr>
+            <tr><td>刷出权重</td><td>tier0 0.10 · +0.16/档</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Burrower -->
+      <div class="card">
+        <div class="top">
+          <div class="swatch" style="background:radial-gradient(circle at 35% 30%, #7a4bc4, #3a1e5e 70%)"></div>
+          <div>
+            <div class="nm">钻颅孢</div>
+            <div class="en">BURROWER</div>
+          </div>
+          <div class="role">伏击 · 高速</div>
+        </div>
+        <div class="body">
+          <p>半埋潜伏，仅露脊刺；玩家进入警觉半径后破土高速突袭，低血高伤，是「冲脸破解远程」打法的反制。常与腐蚀孢形成夹击。</p>
+          <table>
+            <tr><td>行为</td><td><span class="beh">ambush</span></td></tr>
+            <tr><td>生命 / 移速</td><td>34 / 130</td></tr>
+            <tr><td>攻击 / 听觉 / 警觉</td><td>12 / 380 / 360</td></tr>
+            <tr><td>体型倍率</td><td>0.95（瘦长）</td></tr>
+            <tr><td>染色 / 血色</td><td>#7642b8 / #4d2a78</td></tr>
+            <tr><td>刷出权重</td><td>tier0 0.12 · +0.10/档</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Bloom -->
+      <div class="card">
+        <div class="top">
+          <div class="swatch" style="background:radial-gradient(circle at 35% 30%, #5cf08a, #1d8a4e 70%)"></div>
+          <div>
+            <div class="nm">绽孢</div>
+            <div class="en">BLOOM</div>
+          </div>
+          <div class="role">毒雾 · 区域</div>
+        </div>
+        <div class="body">
+          <p>悬浮菌伞状孢体，缓慢漂移并持续散播发光孢子；死亡时炸开一片持久毒雾，封锁走廊与掩体后方，制造「不速清场」的压力。</p>
+          <table>
+            <tr><td>行为</td><td><span class="beh">miasma</span></td></tr>
+            <tr><td>生命 / 移速</td><td>70 / 50</td></tr>
+            <tr><td>攻击 / 听觉 / 警觉</td><td>8 / 260 / 320</td></tr>
+            <tr><td>体型倍率</td><td>1.10（漂浮）</td></tr>
+            <tr><td>死亡毒雾</td><td>半径90 · 4.5s · 11/s</td></tr>
+            <tr><td>染色 / 血色</td><td>#5cf08a / #48a866</td></tr>
+            <tr><td>刷出权重</td><td>tier0 0.09 · +0.14/档</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- Abyss Boss -->
+      <div class="card" style="border-color:#3a2230">
+        <div class="top">
+          <div class="swatch" style="background:radial-gradient(circle at 40% 35%, #6ef2c4, #2a1250 72%)"></div>
+          <div>
+            <div class="nm">渊噬孢</div>
+            <div class="en">ABYSSAL DEVOURER</div>
+          </div>
+          <div class="role boss">WAVE 2 BOSS</div>
+        </div>
+        <div class="body">
+          <p>渊巢的终极备份体：深渊巨口内腔生物荧光青绿，触须缠裹。冲锋更频、弹幕更密、召唤更众——召唤的正是蚀甲孢。母巢孢之后最凶险的单挑。</p>
+          <table>
+            <tr><td>行为</td><td><span class="beh">boss</span></td></tr>
+            <tr><td>生命 / 移速</td><td>5200 / 54</td></tr>
+            <tr><td>攻击 / 听觉 / 警觉</td><td>24 / 1000 / 1000</td></tr>
+            <tr><td>体型倍率</td><td>3.2（巨型）</td></tr>
+            <tr><td>冲锋</td><td>间隔2.6s · ×5.6</td></tr>
+            <tr><td>技能</td><td>弹幕18 · 喷息9 · 召唤5</td></tr>
+            <tr><td>召唤体</td><td>蚀甲孢 Corroder</td></tr>
+            <tr><td>染色 / 血色</td><td>#574d94 / #801a6b</td></tr>
+            <tr><td>得分</td><td>900</td></tr>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="bar"></span>概念效果图（Concept Art）</h2>
+    <p class="note">由 agnes-image 文生图产出，白底便于后续去背；四张分别对应上面三怪一王，配色与设定稿一致。</p>
+    <div class="artgrid">
+      <figure class="artfig">
+        <div class="ph"><img src="art/concept_corroder.png" alt="蚀甲孢 概念图"></div>
+        <figcaption><b>蚀甲孢</b> CORRODER · 酸蚀装甲</figcaption>
+      </figure>
+      <figure class="artfig">
+        <div class="ph"><img src="art/concept_burrower.png" alt="钻颅孢 概念图"></div>
+        <figcaption><b>钻颅孢</b> BURROWER · 破土伏击</figcaption>
+      </figure>
+      <figure class="artfig">
+        <div class="ph"><img src="art/concept_bloom.png" alt="绽孢 概念图"></div>
+        <figcaption><b>绽孢</b> BLOOM · 发光菌伞</figcaption>
+      </figure>
+      <figure class="artfig">
+        <div class="ph"><img src="art/concept_abyss.png" alt="渊噬孢 概念图"></div>
+        <figcaption><b>渊噬孢</b> ABYSSAL DEVOURER · WAVE 2 BOSS</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="bar"></span>落地映射（Game Dev）</h2>
+    <div class="map">
+      <p style="margin-bottom:10px;color:var(--cyan-dim)">从设计到代码/资源的一一对应：</p>
+      <p><span class="tag">数据</span> <code>assets/data/enemy_corroder.tres</code> · <code>enemy_burrower.tres</code> · <code>enemy_bloom.tres</code> · <code>enemy_abyss.tres</code></p>
+      <p><span class="tag">贴图</span> <code>assets/characters/enemy_corroder.png</code> · <code>enemy_burrower.png</code> · <code>enemy_bloom.png</code> · <code>enemy_abyss.png</code>（由 agnes 概念图经 <code>make_sprites.gd</code> 去白底导出）</p>
+      <p><span class="tag">波次</span> <code>scripts/enemy/WaveMode.gd</code> — 第一波 BOSS 击溃 → <code>EventBus.boss_defeated</code> → 弹出过渡卡 → 第二波刷怪 + 召唤渊噬孢</p>
+      <p><span class="tag">UI</span> <code>scripts/ui/WaveCard.gd</code> + <code>scenes/ui/WaveCard.tscn</code> — 「进入下一波 / WAVE 2」提示卡</p>
+      <p><span class="tag">接入</span> <code>scenes/world/Arena.tscn</code> — 关闭 Spawner 计时精英（<code>elite_times=[]</code>），挂入 WaveCard 与 WaveMode</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="bar"></span>实机落地（In-Game）</h2>
+    <p class="note">概念图经 <code style="color:var(--glow)">make_sprites.gd</code> 泛洪去白底 → 归一化 → 透明画布导出为游戏精灵；下方为 1152×648 实机截图。</p>
+    <div class="shotgrid">
+      <figure class="shotfig">
+        <img src="art/ingame_wave_card.png" alt="第二波过渡卡实机截图">
+        <figcaption>第一波 BOSS 击溃后弹出「第二波 · WAVE 2 / 深巢反扑」过渡卡（5s 自动继续或点「继续」）。</figcaption>
+      </figure>
+      <figure class="shotfig">
+        <img src="art/ingame_wave2_scene.png" alt="第二波竞技场实机截图">
+        <figcaption>第二波竞技场：渊噬孢 BOSS（顶部紫黑巨口 + 血条）与三只新型孢体同屏。</figcaption>
+      </figure>
+    </div>
+    <div class="map" style="margin-top:16px">
+      <p><span class="tag">验收</span> <code>tests/probe_wave.gd</code> 端到端波次探针 <b style="color:var(--glow)">18 / 18 PASS</b>（第一波 BOSS → 击溃 → 暂停弹卡 → 继续 → 第二波注入 3 新怪 → 召唤渊噬孢 → 击溃 → 区域肃清）。</p>
+      <p><span class="tag">截图</span> <code>tools/shot_wave2.gd</code> 带窗口实机取证（headless 取不到 framebuffer）。</p>
+    </div>
+  </section>
+
+  <footer>SporeFall · 苍澜纪工作室 · Wave 2 设计稿 v1 — 美术由 agnes-image 生成，资源经 make_sprites 管线入游戏</footer>
+
+</div>
+</body>
+</html>

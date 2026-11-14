@@ -22,6 +22,8 @@
 [ext_resource type="Resource" path="res://assets/data/enemy_spitter.tres" id="21_spitter"]
 [ext_resource type="Resource" path="res://assets/data/enemy_sprayer.tres" id="22_sprayer"]
 [ext_resource type="PackedScene" path="res://scenes/ui/UpgradeUI.tscn" id="20_upgrade"]
+[ext_resource type="PackedScene" path="res://scenes/ui/WaveCard.tscn" id="23_wavecard"]
+[ext_resource type="Script" path="res://scripts/enemy/WaveMode.gd" id="24_wavemode"]
 
 [sub_resource type="NavigationPolygon" id="nav_poly"]
 vertices = PackedVector2Array(-900, -900, 310, -900, 310, 900, -900, 900, 450, -900, 900, -900, 900, 900, 450, 900, 310, -900, 450, -900, 450, -710, 310, -710, 310, -570, 450, -570, 450, 900, 310, 900)
@@ -49,7 +51,10 @@ script = ExtResource("2_spawn")
 enemy_scene = ExtResource("4_enemy")
 variants = Array[EnemyStats]([ExtResource("12_walker"), ExtResource("13_runner"), ExtResource("14_brute"), ExtResource("17_lurker"), ExtResource("18_miasma"), ExtResource("19_splitter"), ExtResource("21_spitter"), ExtResource("22_sprayer")])
 boss_stats = ExtResource("16_boss")
-elite_times = Array[float]([180.0, 480.0, 900.0])
+elite_times = Array[float]([])
+
+[node name="WaveMode" type="Node2D" parent="."]
+script = ExtResource("24_wavemode")
 
 [node name="BulletPool" type="Node2D" parent="."]
 script = ExtResource("10_pool")
@@ -77,6 +82,8 @@ color = Color(0.28, 0.3, 0.36, 1)
 script = ExtResource("6_shake")
 
 [node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="WaveCard" parent="UILayer" instance=ExtResource("23_wavecard")]
 
 [node name="HUD" parent="UILayer" instance=ExtResource("5_hud")]
 

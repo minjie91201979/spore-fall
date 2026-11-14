@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_bloom.png" id="2_tex"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "绽孢 Bloom"
+hearing = 260.0
+move_speed = 50.0
+max_health = 70.0
+attack_power = 8.0
+alert_radius = 320.0
+behavior = "miasma"
+tint = Color(0.36, 0.86, 0.52, 1)
+blood_color = Color(0.28, 0.66, 0.4, 1)
+sprite_texture = ExtResource("2_tex")
+scale_mult = 1.1
+spawn_weight_tier0 = 0.09
+spawn_weight_per_tier = 0.14
+contact_radius = 28.0
+score_value = 20
+poison_radius = 90.0
+poison_duration = 4.5
+poison_dps = 11.0

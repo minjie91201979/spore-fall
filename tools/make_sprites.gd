@@ -25,11 +25,15 @@ const JOBS := {
 	"splitter.png": "enemy_splitter.png",
 	"spitter.png": "enemy_spitter.png",
 	"sprayer.png": "enemy_sprayer.png",
+	"corroder.png": "enemy_corroder.png",
+	"burrower.png": "enemy_burrower.png",
+	"bloom.png": "enemy_bloom.png",
+	"abyss.png": "enemy_abyss.png",
 }
 
 func _initialize() -> void:
 	for src in JOBS:
-		var src_path := SRC_DIR + src
+		var src_path: String = SRC_DIR + (src as String)
 		if not FileAccess.file_exists(src_path):
 			print("MISSING ", src)
 			continue

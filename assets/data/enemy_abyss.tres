@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_abyss.png" id="2_tex"]
+[ext_resource type="Resource" path="res://assets/data/enemy_corroder.tres" id="3_summon"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "渊噬孢 · Abyssal Devourer"
+hearing = 1000.0
+move_speed = 54.0
+max_health = 5200.0
+attack_power = 24.0
+alert_radius = 1000.0
+behavior = "boss"
+tint = Color(0.34, 0.18, 0.58, 1)
+blood_color = Color(0.5, 0.1, 0.42, 1)
+sprite_texture = ExtResource("2_tex")
+scale_mult = 3.2
+spawn_weight_tier0 = 0.0
+spawn_weight_per_tier = 0.0
+is_boss = true
+score_value = 900
+contact_radius = 60.0
+charge_interval = 2.6
+charge_speed = 5.6
+skill_interval = 4.6
+skill_range = 700.0
+radial_count = 18
+breath_count = 9
+breath_spread_deg = 50.0
+summon_count = 5
+summon_stats = ExtResource("3_summon")
