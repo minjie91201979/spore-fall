@@ -96,5 +96,6 @@ func _load_saved() -> void:
 
 func _save() -> void:
 	var cfg := ConfigFile.new()
+	cfg.load(CONFIG_PATH)   # 保留 gameplay 等其它设置区，别把系统设置冲掉
 	cfg.set_value("video", "quality", level)
 	cfg.save(CONFIG_PATH)

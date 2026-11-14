@@ -16,6 +16,7 @@ var _keys: Label
 var _dry: float = 0.0
 var _ammo_pos := Vector2(20, 134)
 var _weapon_pos := Vector2(20, 172)
+var settings_button: Button
 
 func _ready() -> void:
 	EventBus.player_hit.connect(_on_player_hit)
@@ -31,6 +32,18 @@ func _ready() -> void:
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
 	quality_button.pressed.connect(_on_quality_pressed)
+	# 设置按钮放在「画质」正下方，沿用同一套 ghost 样式
+	settings_button = MenuChrome.ghost_button("设 置")
+	settings_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	settings_button.offset_left = -150.0
+	settings_button.offset_top = 64.0
+	settings_button.offset_right = -20.0
+	settings_button.offset_bottom = 100.0
+	settings_button.custom_minimum_size = Vector2(130, 36)
+	settings_button.add_theme_font_size_override("font_size", 14)
+	settings_button.focus_mode = Control.FOCUS_NONE
+	add_child(settings_button)
+	settings_button.pressed.connect(_on_settings_pressed)
 	_update_quality_text()
 	add_to_group("hud")
 	_ammo_pos = ammo_label.position
@@ -54,6 +67,9 @@ func _ready() -> void:
 
 func _on_quality_pressed() -> void:
 	Quality.cycle()
+
+func _on_settings_pressed() -> void:
+	SettingsPanel.open_from(self)
 
 func _on_quality_changed(_lv: int) -> void:
 	_update_quality_text()

@@ -1,7 +1,7 @@
 extends Control
 # 标题界面：剧情 / 生存两个入口。
 # 主页不再展示最高分；有记录时只在桌面端用一行暗字带过。
-# 画质和退出仍留在这一页。
+# 画质、系统设置和退出仍留在这一页。
 
 @onready var story_btn: Button = $Center/StoryButton
 @onready var survival_btn: Button = $Center/SurvivalButton
@@ -11,6 +11,7 @@ extends Control
 @onready var survival_hint: Label = $Center/SurvivalHint
 @onready var hint_touch: Label = $Hints/TouchHint
 @onready var hint_pc: Label = $Hints/PcHint
+var settings_btn: Button
 
 func _ready() -> void:
 	StoryState.load_disk()
@@ -18,6 +19,15 @@ func _ready() -> void:
 	survival_btn.pressed.connect(_open_survival)
 	quality_btn.pressed.connect(_cycle_quality)
 	quit_btn.pressed.connect(_quit)
+	# 系统设置按钮插在「画质」之后，样式与同列 ghost 按钮一致
+	settings_btn = MenuChrome.ghost_button("系 统 设 置")
+	settings_btn.custom_minimum_size = Vector2(260, 42)
+	settings_btn.add_theme_font_size_override("font_size", 15)
+	settings_btn.focus_mode = Control.FOCUS_NONE
+	var center := quality_btn.get_parent()
+	center.add_child(settings_btn)
+	center.move_child(settings_btn, quality_btn.get_index() + 1)
+	settings_btn.pressed.connect(_open_settings)
 	EventBus.quality_changed.connect(_on_quality_changed)
 	_refresh_quality()
 	_refresh_summaries()
@@ -51,6 +61,9 @@ func _leave(path: String) -> void:
 
 func _cycle_quality() -> void:
 	Quality.cycle()
+
+func _open_settings() -> void:
+	SettingsPanel.open_from(self)
 
 func _on_quality_changed(_lv: int) -> void:
 	_refresh_quality()

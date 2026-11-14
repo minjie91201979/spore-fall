@@ -40,6 +40,11 @@ func _ready() -> void:
 		quality.text = "画质　%s" % Quality.LEVEL_NAMES[Quality.level]
 	)
 	_box.add_child(quality)
+	var settings := MenuChrome.ghost_button("系统设置")
+	settings.pressed.connect(func() -> void:
+		SettingsPanel.open_from(self)
+	)
+	_box.add_child(settings)
 	var back := MenuChrome.ghost_button("返回标题")
 	back.pressed.connect(_on_title)
 	_box.add_child(back)

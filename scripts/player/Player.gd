@@ -105,10 +105,10 @@ func _attack() -> void:
 	# 开火不做 hitstop（会拖慢全局时间轴），只给轻微屏震做反馈
 	Juice.add_trauma(0.08)
 	Sfx.play(String(def.sfx), float(def.sfx_pitch))
-	# 瞄准方向：自动锁最近敌人（摇杆/键盘只管走位），无目标才退回最后移动方向。
-	# 这样手机上不必「为了打左边而往左走」，走位与瞄准彻底解耦。
+	# 瞄准方向：系统设置里开了自动瞄准就锁最近敌人（摇杆/键盘只管走位），
+	# 关掉则朝最后移动方向射击；无目标时同样退回最后移动方向。
 	var aim_base: Vector2 = _last_dir
-	if TouchInput.auto_aim:
+	if Settings.auto_aim:
 		var auto_dir := _auto_aim_dir()
 		if auto_dir != Vector2.ZERO:
 			aim_base = auto_dir
