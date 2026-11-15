@@ -13,10 +13,14 @@ const BASE_SCALE := 0.19   # 贴图主体已归一化（210/256），该值对�
 
 const PICKUP_SCENE := preload("res://scenes/world/Pickup.tscn")
 const ENEMY_BULLET_SCENE := preload("res://scenes/world/EnemyBullet.tscn")
+const ANIM_SCRIPT := preload("res://scripts/enemy/EnemyAnim.gd")
 
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var particles: GPUParticles2D = $KillParticles
 @onready var outline: Sprite2D = $Outline
+
+# 程序化动画层（§11.14）：只改 Sprite/Outline 的 transform，不碰玩法状态
+var anim = ANIM_SCRIPT.new()
 
 var _default_tex: Texture2D
 
@@ -153,6 +157,8 @@ func _apply_visual() -> void:
 	if is_instance_valid(outline):
 		outline.texture = spr.texture
 		outline.scale = spr.scale
+	# 换怪 / 池化复用时重新配置动画风格并清掉上一只残留的相位与脉冲
+	anim.setup(spr, outline, _base_scale, stats)
 
 func _restore_tint() -> void:
 	var spr: Sprite2D = $Sprite
@@ -180,6 +186,12 @@ func _set_nav_query(enabled: bool) -> void:
 	nav_agent.set_physics_process(enabled)
 	if enabled:
 		_nav_repath_t = 0.0
+
+# 动画层走独立 _process：纯视觉逻辑，不该依赖 _player 存在或玩法状态机的早退。
+# 放在 _physics_process 里会因为「玩家死亡 / 切场景 / 潜伏分支 return」而整体僵住。
+func _process(delta: float) -> void:
+	if active:
+		anim.tick(delta, self)
 
 func _physics_process(delta: float) -> void:
 	if not active or not is_instance_valid(_player):
@@ -234,25 +246,14 @@ func _physics_process(delta: float) -> void:
 		var dmg: float = stats.attack_power if stats else 8.0
 		if is_boss and _charge_state == 2:
 			dmg *= 1.6
+		anim.pulse_attack(dir)   # 贴身撞击：朝玩家一顶
 		_player.take_damage(dmg)
 
-# 破土弹跳：本体与描边层一起放大再回落（只动 Sprite，不碰物理碰撞体的 scale）
+# 破土弹跳：交给动画层做纵向拉伸脉冲。
+# 旧实现用 tween 直接写 spr.scale / outline.scale，会与动画层每帧写 scale 互相覆盖，
+# 所以改为走统一的 pulse 通道（动画层是 transform 的唯一写入方）。
 func _emerge_pop() -> void:
-	var spr: Sprite2D = $Sprite
-	var popped: Vector2 = _base_scale * 1.22
-	var tw := create_tween()
-	tw.set_ignore_time_scale(true)
-	tw.tween_property(spr, "scale", popped, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var back := create_tween()
-	back.set_ignore_time_scale(true)
-	back.tween_property(spr, "scale", _base_scale, 0.14).set_delay(0.08)
-	if is_instance_valid(outline):
-		var t2 := create_tween()
-		t2.set_ignore_time_scale(true)
-		t2.tween_property(outline, "scale", popped, 0.08).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		var b2 := create_tween()
-		b2.set_ignore_time_scale(true)
-		b2.tween_property(outline, "scale", _base_scale, 0.14).set_delay(0.08)
+	anim.pulse_emerge()
 
 # 杂兵移动 + 远程攻击（§11.12）：射程带内冷却好 → 站桩蓄射（染色预警）→ 开火；
 # 太近（< min_range）或冷却中 → 照常追击，玩家贴脸即可破解远程。
@@ -306,6 +307,7 @@ func _fire_ranged(kind: String) -> void:
 	var dir: Vector2 = (_player.global_position - global_position).normalized()
 	var dmg: float = stats.attack_power * stats.ranged_damage_mult
 	var spawn_pos: Vector2 = global_position + dir * 20.0
+	anim.pulse_fire(dir)   # 开火瞬间朝射击方向一顶
 	if kind == "needle":
 		Sfx.play("shoot", 1.4, -4.0)
 		_spawn_bullet(spawn_pos, dir, dmg, 460.0, {
@@ -358,6 +360,7 @@ func _boss_update(delta: float, speed: float, dir: Vector2, dist: float) -> void
 				_charge_state = 1
 				_charge_t = 0.55
 				velocity = Vector2.ZERO
+				anim.pulse_charge()   # 冲锋起手：压扁蓄力
 				_flash_tint(Color(1.0, 0.32, 0.32), 0.12)
 				Sfx.play("hurt", 0.45, 2.0)
 			elif can_skill:
@@ -408,6 +411,7 @@ func _cast_skill() -> void:
 	_charge_state = 0
 	_charge_cd = maxf(_charge_cd, 1.2)   # 出招后冲锋至少再等 1.2s，节奏可读
 	_skill_cd = stats.skill_interval if stats else 5.5
+	anim.pulse_cast()   # 技能释放瞬间整只胀开
 	_restore_tint()
 	var dir: Vector2 = (_player.global_position - global_position).normalized()
 	var dmg: float = stats.attack_power * 0.5
@@ -501,6 +505,7 @@ func take_damage(amount: float) -> void:
 	if not active:
 		return   # 已死/回池中的敌人不再吃伤害，防同帧双杀双计数
 	health -= amount
+	anim.pulse_hit()   # 受击挤压 + 抖动（不动 modulate，避免与 tint 染色冲突）
 	Juice.add_trauma(0.15)
 	Sfx.play("hit")
 	if is_boss:
@@ -529,8 +534,10 @@ func _deferred_die() -> void:
 		stats.scale_mult if stats else 1.0)
 	# 被打爆演出：本体立即回池，视觉替身留原地（闪白膨胀 → 贴图碎片+脓滴四散 → 淡出）
 	var spr: Sprite2D = $Sprite
+	# 用 _base_scale 而非 spr.scale.x：动画层每帧写 scale，死亡帧可能正好落在压缩相位，
+	# 会让爆裂碎片忽大忽小；基准体型才稳定。
 	DeathBurst.spawn(get_tree().current_scene, global_position, spr.texture,
-		_base_tint, blood, spr.scale.x, stats.scale_mult if stats else 1.0)
+		_base_tint, blood, _base_scale.x, stats.scale_mult if stats else 1.0)
 	# 变种行为分支（§11.5 M4）：毒雾孢留雾区 / 分裂孢裂出子体
 	if stats:
 		if stats.behavior == "miasma":

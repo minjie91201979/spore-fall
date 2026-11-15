@@ -310,7 +310,31 @@
     </div>
   </section>
 
-  <footer>SporeFall · 苍澜纪工作室 · Wave 2 设计稿 v1.1（含可读性打磨）— 美术由 agnes-image 生成，资源经 make_sprites + polish_wave2_sprites 管线入游戏</footer>
+  <section>
+    <h2><span class="bar"></span>动作系统（Animation · 全 13 怪 + 3 BOSS）</h2>
+    <p class="note">此前所有敌人都是<b>单张静止贴图</b>，只有零星 tween（前摇染色 / 破土弹跳 / 死亡碎片）。本次补上完整的行走、攻击、受击动作。</p>
+    <div class="map" style="margin-bottom:16px">
+      <p><span class="tag">选型</span> 俯视角、屏幕尺寸仅约 40px、写实概念图风格。为 13 只怪各生成 4~8 帧逐帧图既难保 AI 出图一致性，又让资源与包体翻倍。改用<b>程序化动画层</b> <code>scripts/enemy/EnemyAnim.gd</code>：纯数学变换、零新资源、零额外 draw call、低画质不掉帧，且能 headless 断言。</p>
+      <p><span class="tag">纪律</span> 动画层<b>只写 Sprite / Outline 的 scale・rotation・position</b>，绝不碰 <code>modulate</code> —— 相乘染色 <code>stats.tint</code> 与 <code>_flash_tint()</code> 前摇染色由 Enemy 自己管，避免打架。描边层同步变换，亮轮廓始终贴合本体。</p>
+      <p><span class="tag">状态读取</span> 持续姿态直接读现有状态机（<code>_charge_state</code> / <code>_ranged_state</code> / <code>_ambush_state</code> / <code>velocity</code>），<b>不在每个状态切换点插桩</b>，天然覆盖所有分支、不漏逻辑。瞬时事件走 <code>pulse()</code> 带衰减：开火 / 受击 / 破土 / 冲锋起手 / 技能释放 / 贴身撞击。</p>
+      <p><span class="tag">7 种风格</span> <b>WALK</b>（walker/corroder/spitter/sprayer 步态摆动）、<b>RUN</b>（runner 高频大幅）、<b>AMBUSH</b>（lurker/burrower 潜伏几乎静止 + 破土纵拉）、<b>FLOAT</b>（miasma/bloom 悬浮上下漂、不落地不摆）、<b>SPLIT</b>（splitter 果冻式高频挤压）、<b>ELITE</b>（brute 厚重低频）、<b>BOSS</b>（母巢孢/渊噬孢 低频威压 + 冲锋前摇压扁 + 突进拉长 + 技能咏唱收紧颤动）。静止时降为呼吸，速度越快步频越大。</p>
+      <p><span class="tag">池化</span> <code>configure()</code> / <code>reset_for_reuse()</code> 会重置相位与全部脉冲；<code>tick()</code> 首帧自检补 <code>@onready</code> 引用（ObjectPool 先 reset 再 add_child，那一刻 Outline 尚未赋值）。<code>DeathBurst</code> 改读稳定的 <code>_base_scale</code>，不受死亡帧压缩相位影响。</p>
+    </div>
+    <figure class="shotfig" style="margin-bottom:14px">
+      <img src="art/anim_walk_cycle.png" alt="行走循环逐帧序列">
+      <figcaption>行走循环：同一只蚀甲孢逐 0.055s 采样的 12 帧，可见横向压扁/纵向拉伸、左右摆动与起伏，主题色亮轮廓同步形变。</figcaption>
+    </figure>
+    <figure class="shotfig" style="margin-bottom:14px">
+      <img src="art/anim_poses.png" alt="五种动作姿态对比">
+      <figcaption>动作姿态：待机 / 蓄力（压扁变宽）/ 开火（朝射击方向一顶）/ 受击（横向挤压抖动）/ 破土（纵向拉长弹出）。</figcaption>
+    </figure>
+    <div class="map">
+      <p><span class="tag">验收</span> <code>tests/probe_anim.gd</code> <b style="color:var(--glow)">52 / 52 PASS</b>：13 只怪逐一采样 transform 时间序列证明「真的在动」、风格幅度有差异、描边同步、5 类脉冲生效、动画层不碰 modulate、池化复用归零。另用 <code>tools/shot_anim.gd</code> 带窗口逐帧取证，并用像素差确认帧间确实变化（行走 3~9 / 事件姿态 25~36）。</p>
+      <p><span class="tag">回归</span> 主链路 <b>35/35</b>、时序 <b>21/21</b> 均未受影响，零脚本错误。</p>
+    </div>
+  </section>
+
+  <footer>SporeFall · 苍澜纪工作室 · Wave 2 设计稿 v1.2（含可读性打磨 + 动作系统）— 美术由 agnes-image 生成，资源经 make_sprites + polish_wave2_sprites 管线入游戏</footer>
 
 </div>
 </body>
