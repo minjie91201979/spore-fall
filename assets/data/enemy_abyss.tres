@@ -13,10 +13,12 @@ max_health = 5200.0
 attack_power = 24.0
 alert_radius = 1000.0
 behavior = "boss"
-tint = Color(0.34, 0.18, 0.58, 1)
+# 主因修复：原深紫 tint (0.34,0.18,0.58) 与写实暗紫贴图相乘 → 几乎全黑。
+# 改近白后青绿巨口与触须层次完整透出；主题色由贴图 + 烘焙轮廓承担。
+tint = Color(1.0, 1.0, 1.0, 1)
 blood_color = Color(0.5, 0.1, 0.42, 1)
 sprite_texture = ExtResource("2_tex")
-scale_mult = 3.2
+scale_mult = 3.6
 spawn_weight_tier0 = 0.0
 spawn_weight_per_tier = 0.0
 is_boss = true

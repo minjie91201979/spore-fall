@@ -81,6 +81,12 @@
     <h2><span class="bar"></span>波次流转（Wave Flow）</h2>
     <div class="flow">
       <div class="node">
+        <div class="t">Warm-up · 45s</div>
+        <div class="h">铺垫期</div>
+        <div class="d">常规刷怪，玩家先攒武器/晶体，避免开局裸装被 BOSS 追。</div>
+      </div>
+      <div class="arrow">→</div>
+      <div class="node">
         <div class="t">Wave 1</div>
         <div class="h">母巢孢 · Brood Mother</div>
         <div class="d">第一波 BOSS（已有）。HUD 目标：「击溃母巢孢 · 第一波」。</div>
@@ -95,7 +101,7 @@
       <div class="node">
         <div class="t">Wave 2</div>
         <div class="h">深巢反扑 · 三怪一王</div>
-        <div class="d">三新型孢体持续刷出；25 秒后召唤渊噬孢。</div>
+        <div class="d">立刻刷 5 只新怪（视野内 240~400px）→ 6s 补 4 只 → 14s 召唤渊噬孢。</div>
       </div>
     </div>
   </section>
@@ -120,10 +126,11 @@
             <tr><td>行为</td><td><span class="beh">walk</span><span class="beh">venom</span></td></tr>
             <tr><td>生命 / 移速</td><td>95 / 46</td></tr>
             <tr><td>攻击 / 听觉 / 警觉</td><td>10 / 300 / 420</td></tr>
-            <tr><td>体型倍率</td><td>1.15（厚甲）</td></tr>
+            <tr><td>体型倍率</td><td>1.40（厚甲）</td></tr>
             <tr><td>毒云</td><td>半径52 · 3.0s · 10/s</td></tr>
-            <tr><td>染色 / 血色</td><td>#ccd64d / #948f1f</td></tr>
-            <tr><td>刷出权重</td><td>tier0 0.10 · +0.16/档</td></tr>
+            <tr><td>tint / 血色</td><td>近白 1.0 / #948f1f</td></tr>
+            <tr><td>发光轮廓</td><td>#D8E25A 酸蚀黄绿</td></tr>
+            <tr><td>刷出权重</td><td>tier0 0.42 · +0.20/档</td></tr>
           </table>
         </div>
       </div>
@@ -144,9 +151,10 @@
             <tr><td>行为</td><td><span class="beh">ambush</span></td></tr>
             <tr><td>生命 / 移速</td><td>34 / 130</td></tr>
             <tr><td>攻击 / 听觉 / 警觉</td><td>12 / 380 / 360</td></tr>
-            <tr><td>体型倍率</td><td>0.95（瘦长）</td></tr>
-            <tr><td>染色 / 血色</td><td>#7642b8 / #4d2a78</td></tr>
-            <tr><td>刷出权重</td><td>tier0 0.12 · +0.10/档</td></tr>
+            <tr><td>体型倍率</td><td>1.28（瘦长）</td></tr>
+            <tr><td>tint / 血色</td><td>近白 1.0 / #4d2a78</td></tr>
+            <tr><td>发光轮廓</td><td>#C9A0FF 亮紫</td></tr>
+            <tr><td>刷出权重</td><td>tier0 0.40 · +0.16/档</td></tr>
           </table>
         </div>
       </div>
@@ -167,10 +175,11 @@
             <tr><td>行为</td><td><span class="beh">miasma</span></td></tr>
             <tr><td>生命 / 移速</td><td>70 / 50</td></tr>
             <tr><td>攻击 / 听觉 / 警觉</td><td>8 / 260 / 320</td></tr>
-            <tr><td>体型倍率</td><td>1.10（漂浮）</td></tr>
+            <tr><td>体型倍率</td><td>1.35（漂浮）</td></tr>
             <tr><td>死亡毒雾</td><td>半径90 · 4.5s · 11/s</td></tr>
-            <tr><td>染色 / 血色</td><td>#5cf08a / #48a866</td></tr>
-            <tr><td>刷出权重</td><td>tier0 0.09 · +0.14/档</td></tr>
+            <tr><td>tint / 血色</td><td>近白 1.0 / #48a866</td></tr>
+            <tr><td>发光轮廓</td><td>#7DFFA8 荧光绿</td></tr>
+            <tr><td>刷出权重</td><td>tier0 0.36 · +0.18/档</td></tr>
           </table>
         </div>
       </div>
@@ -191,11 +200,13 @@
             <tr><td>行为</td><td><span class="beh">boss</span></td></tr>
             <tr><td>生命 / 移速</td><td>5200 / 54</td></tr>
             <tr><td>攻击 / 听觉 / 警觉</td><td>24 / 1000 / 1000</td></tr>
-            <tr><td>体型倍率</td><td>3.2（巨型）</td></tr>
+            <tr><td>体型倍率</td><td>3.6（巨型）</td></tr>
             <tr><td>冲锋</td><td>间隔2.6s · ×5.6</td></tr>
             <tr><td>技能</td><td>弹幕18 · 喷息9 · 召唤5</td></tr>
             <tr><td>召唤体</td><td>蚀甲孢 Corroder</td></tr>
-            <tr><td>染色 / 血色</td><td>#574d94 / #801a6b</td></tr>
+            <tr><td>tint / 血色</td><td>纯白 1.0 / #801a6b</td></tr>
+            <tr><td>发光轮廓</td><td>#6EF2C4 深渊青绿</td></tr>
+            <tr><td>登场延迟</td><td>第二波开始后 14s</td></tr>
             <tr><td>得分</td><td>900</td></tr>
           </table>
         </div>
@@ -232,8 +243,8 @@
     <div class="map">
       <p style="margin-bottom:10px;color:var(--cyan-dim)">从设计到代码/资源的一一对应：</p>
       <p><span class="tag">数据</span> <code>assets/data/enemy_corroder.tres</code> · <code>enemy_burrower.tres</code> · <code>enemy_bloom.tres</code> · <code>enemy_abyss.tres</code></p>
-      <p><span class="tag">贴图</span> <code>assets/characters/enemy_corroder.png</code> · <code>enemy_burrower.png</code> · <code>enemy_bloom.png</code> · <code>enemy_abyss.png</code>（由 agnes 概念图经 <code>make_sprites.gd</code> 去白底导出）</p>
-      <p><span class="tag">波次</span> <code>scripts/enemy/WaveMode.gd</code> — 第一波 BOSS 击溃 → <code>EventBus.boss_defeated</code> → 弹出过渡卡 → 第二波刷怪 + 召唤渊噬孢</p>
+      <p><span class="tag">贴图</span> <code>assets/characters/enemy_*.png</code>（agnes 概念图 → <code>make_sprites.gd</code> 去白底 → <code>polish_wave2_sprites.py</code> 提亮 + 烘焙亮轮廓）</p>
+      <p><span class="tag">波次</span> <code>scripts/enemy/WaveMode.gd</code> — 45s 铺垫 → 第一波 BOSS 击溃 → <code>EventBus.boss_defeated</code> → 弹出过渡卡 → 第二波分批刷怪 + 14s 后召唤渊噬孢</p>
       <p><span class="tag">UI</span> <code>scripts/ui/WaveCard.gd</code> + <code>scenes/ui/WaveCard.tscn</code> — 「进入下一波 / WAVE 2」提示卡</p>
       <p><span class="tag">接入</span> <code>scenes/world/Arena.tscn</code> — 关闭 Spawner 计时精英（<code>elite_times=[]</code>），挂入 WaveCard 与 WaveMode</p>
     </div>
@@ -241,7 +252,7 @@
 
   <section>
     <h2><span class="bar"></span>实机落地（In-Game）</h2>
-    <p class="note">概念图经 <code style="color:var(--glow)">make_sprites.gd</code> 泛洪去白底 → 归一化 → 透明画布导出为游戏精灵；下方为 1152×648 实机截图。</p>
+    <p class="note">概念图经 <code style="color:var(--glow)">make_sprites.gd</code> 泛洪去白底 → 归一化 → <code>polish_wave2_sprites.py</code> 提亮与烘焙轮廓 → 游戏精灵；下方为 1152×648 打磨后实机截图。</p>
     <div class="shotgrid">
       <figure class="shotfig">
         <img src="art/ingame_wave_card.png" alt="第二波过渡卡实机截图">
@@ -249,16 +260,39 @@
       </figure>
       <figure class="shotfig">
         <img src="art/ingame_wave2_scene.png" alt="第二波竞技场实机截图">
-        <figcaption>第二波竞技场：渊噬孢 BOSS（顶部紫黑巨口 + 血条）与三只新型孢体同屏。</figcaption>
+        <figcaption>第二波竞技场：渊噬孢 BOSS（青绿巨口 + 荧光轮廓）与三只新型孢体同屏，暗地面上均清晰可辨。</figcaption>
       </figure>
     </div>
     <div class="map" style="margin-top:16px">
-      <p><span class="tag">验收</span> <code>tests/probe_wave.gd</code> 端到端波次探针 <b style="color:var(--glow)">18 / 18 PASS</b>（第一波 BOSS → 击溃 → 暂停弹卡 → 继续 → 第二波注入 3 新怪 → 召唤渊噬孢 → 击溃 → 区域肃清）。</p>
+      <p><span class="tag">验收</span> <code>tests/probe_wave.gd</code> 端到端波次探针 <b style="color:var(--glow)">35 / 35 PASS</b>（tint/体型/权重/节奏参数 + 第一波 BOSS → 击溃 → 暂停弹卡 → 继续 → 第二波注入 3 新怪 → 召唤渊噬孢 → 击溃 → 区域肃清）。</p>
       <p><span class="tag">截图</span> <code>tools/shot_wave2.gd</code> 带窗口实机取证（headless 取不到 framebuffer）。</p>
     </div>
   </section>
 
-  <footer>SporeFall · 苍澜纪工作室 · Wave 2 设计稿 v1 — 美术由 agnes-image 生成，资源经 make_sprites 管线入游戏</footer>
+  <section>
+    <h2><span class="bar"></span>可读性打磨（Readability Polish）</h2>
+    <p class="note">首版实机截图暴露的问题：写实深色概念图在暗地面上糊成一团，玩家分不清哪只是哪只。诊断后做了针对性修复。</p>
+    <div class="map" style="margin-bottom:16px">
+      <p><span class="tag">根因1</span> <b>深 tint 二重压暗</b>：<code>Enemy._apply_visual()</code> 用 <code>spr.modulate = stats.tint</code> 相乘染色（原本给白底简笔贴图用），而写实概念图已自带配色。渊噬孢原 tint <code>(0.34,0.18,0.58)</code> 乘上本就 avgLum≈51 的暗紫贴图 → 青绿巨口全灭。→ 4 张 tint 全部改近白，主题色交给贴图与轮廓。</p>
+      <p><span class="tag">根因2</span> <b>运行时描边失效</b>：<code>Enemy.tscn</code> 的 outline shader 是深黑色，深底配黑边＝无轮廓；且<b>低画质档会被 Quality 整个关掉</b>。→ 把主题色亮轮廓<b>烘焙进 PNG 自身</b>，任何画质档都可见。</p>
+      <p><span class="tag">根因3</span> <b>体型过小 / 权重过低</b>：scale_mult 0.95~1.15、刷出权重合计仅 0.31（walker 单只 1.0），第二波"换新怪"名不副实。→ 体型提到 1.28~1.40 / BOSS 3.6，权重合计提到 <b>1.18</b>，新怪成为第二波主力。</p>
+      <p><span class="tag">根因4</span> <b>节奏</b>：原实现开局立刻上 BOSS（玩家裸装）、弹卡后干等 25s、开场怪刷在 420~620px（视野外）。→ 加 45s 铺垫期；渊噬孢缩到 14s，中间 6s 补一批怪；开场刷怪收进 240~400px 视野内。</p>
+    </div>
+    <figure class="shotfig" style="margin-bottom:14px">
+      <img src="art/sprite_polish_compare.png" alt="四张贴图打磨前后对比">
+      <figcaption>贴图单体对比（上＝打磨前，下＝打磨后）：gamma 提亮暗部 + 主题色发光轮廓。渊噬孢近黑像素占比 <b>74.6% → 26.3%</b>，钻颅孢 <b>72.4% → 24.2%</b>。</figcaption>
+    </figure>
+    <figure class="shotfig">
+      <img src="art/wave2_before_after.png" alt="实机画面打磨前后对比">
+      <figcaption>1152×648 实机对比：打磨后渊噬孢青绿巨口与触须层次分明，三只新怪在暗地面上均带主题色轮廓、一眼可辨。</figcaption>
+    </figure>
+    <div class="map" style="margin-top:16px">
+      <p><span class="tag">管线</span> <code>gen_wave2.cjs</code> → <code>make_sprites.gd</code>（去白底/归一化）→ <b><code>tools/polish_wave2_sprites.py</code></b>（gamma 提亮 + 烘焙亮轮廓，可复现，<code>--dry</code> 只报告指标）→ <code>--headless --import</code>。重跑 make_sprites 后必须补跑抛光脚本。</p>
+      <p><span class="tag">防回归</span> <code>tests/probe_wave.gd</code> 新增 17 项断言锁定 tint 近白、scale、权重、铺垫期与刷怪半径，合计 <b style="color:var(--glow)">35 / 35 PASS</b>。</p>
+    </div>
+  </section>
+
+  <footer>SporeFall · 苍澜纪工作室 · Wave 2 设计稿 v1.1（含可读性打磨）— 美术由 agnes-image 生成，资源经 make_sprites + polish_wave2_sprites 管线入游戏</footer>
 
 </div>
 </body>

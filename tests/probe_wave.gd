@@ -17,6 +17,17 @@ func _initialize() -> void:
 		return
 	if not gs.is_running:
 		gs.start_run()
+
+	# ---- 节奏 / 可读性参数防回归 ----
+	# headless 帧 delta 极小，45s 铺垫期永远走不完 → 显式置 0 驱动第一波。
+	var wm0: Node = current_scene.get_node_or_null("WaveMode")
+	_check(wm0 != null, "WAVEMODE_NODE_FOUND")
+	if wm0:
+		_check(float(wm0.get("wave1_delay")) >= 20.0, "WAVE1_WARMUP_EXISTS")
+		_check(float(wm0.get("wave2_delay")) <= 20.0, "WAVE2_DELAY_PLAYABLE")
+		_check(float(wm0.get("wave2_spawn_max")) <= 420.0, "WAVE2_SPAWNS_IN_VIEW")
+		wm0.set("wave1_delay", 0.0)
+	_check_data_tuning()
 	await _frames(30)   # 等 WaveMode 发起第一波 BOSS
 
 	# ---- 第一波 BOSS ----
@@ -77,6 +88,29 @@ func _initialize() -> void:
 	print("WAVE_FLOW_PASS=%d FAIL=%d" % [passc, failc])
 	print("OK" if failc == 0 else "FAILED")
 	quit()
+
+func _check_data_tuning() -> void:
+	# 防回归：写实概念图不能再被深 tint 相乘压黑，体型/权重也要保持在打磨后的水平。
+	# 运行时 load 而非静态引用 class_name（-s 脚本在 autoload 注册前编译，静态引用会炸）。
+	var paths := {
+		"corroder": "res://assets/data/enemy_corroder.tres",
+		"burrower": "res://assets/data/enemy_burrower.tres",
+		"bloom": "res://assets/data/enemy_bloom.tres",
+		"abyss": "res://assets/data/enemy_abyss.tres",
+	}
+	var weight_sum := 0.0
+	for key in paths:
+		var path: String = paths[key] as String
+		var st = load(path)
+		_check(st != null, "TRES_LOADED(%s)" % key)
+		if st == null:
+			continue
+		var tint: Color = st.get("tint")
+		var brightness: float = (tint.r + tint.g + tint.b) / 3.0
+		_check(brightness > 0.9, "TINT_NEAR_WHITE(%s=%.2f)" % [key, brightness])
+		_check(float(st.get("scale_mult")) >= 1.25, "SCALE_READABLE(%s=%.2f)" % [key, float(st.get("scale_mult"))])
+		weight_sum += float(st.get("spawn_weight_tier0"))
+	_check(weight_sum >= 1.0, "WAVE2_WEIGHT_DOMINANT(%.2f)" % weight_sum)
 
 func _find_active_boss(substr: String) -> Node:
 	for e in get_nodes_in_group("boss"):

@@ -1,8 +1,14 @@
 extends Node2D
-# 波次控制器（§新增）：取代 Spawner 的计时精英机制。
-# 第一波 BOSS（母巢孢）被击溃后，弹出「进入下一波」提示卡（WaveCard），
-# 玩家确认（或 5 秒自动）后进入第二波：持续刷出三只新型孢体，
-# 并在延迟后召唤第二波 BOSS（渊噬孢 · Abyssal Devourer）。
+# 波次控制器：取代 Spawner 的计时精英机制，把一局拆成「铺垫 → 一波 BOSS → 过渡卡 → 二波」。
+#
+# 节奏（秒，均为可导出参数，方便策划调）：
+#   0           开局：常规刷怪，玩家攒武器/晶体（wave1_delay 之前的铺垫期）
+#   wave1_delay 第一波 BOSS 母巢孢登场
+#   击溃        暂停 + 弹 WaveCard「第二波 · 深巢反扑」
+#   继续        立刻刷一批新怪（近身半径，保证进视野）→ 进入第二波
+#   +reinforce  第二波中途再补一批，避免清完场后干等
+#   +wave2_delay 渊噬孢登场
+#   击溃        目标改为「区域已肃清」
 #
 # 数据流：复用 EnemyPool.acquire + Enemy.configure，与 Spawner.spawn_boss 同构；
 # 通过 EventBus.boss_defeated 串联两波，GameState.boss_active 作为全局单 Boss 互斥锁。
@@ -13,13 +19,19 @@ const BURROWER := preload("res://assets/data/enemy_burrower.tres")
 const BLOOM := preload("res://assets/data/enemy_bloom.tres")
 const ABYSS := preload("res://assets/data/enemy_abyss.tres")
 
-@export var wave2_delay: float = 25.0        # 第二波开始到召唤渊噬孢的延迟（秒）
-@export var boss_spawn_radius: float = 520.0 # Boss 在玩家周围的登场距离
+@export var wave1_delay: float = 45.0        # 开局铺垫期：先让玩家捡到武器再上 BOSS
+@export var wave2_delay: float = 14.0        # 第二波开始到渊噬孢登场的间隔
+@export var reinforce_at: float = 6.0        # 第二波中途补怪时刻（相对第二波开始）
+@export var boss_spawn_radius: float = 460.0 # Boss 在玩家周围的登场距离
+@export var wave2_spawn_min: float = 240.0  # 第二波开场怪内圈（进视野，不再刷在屏外）
+@export var wave2_spawn_max: float = 400.0
 
 var _wave: int = 0
 var _boss_down: bool = false
+var _wave1_t: float = 0.0
 var _wave2_started: bool = false
 var _wave2_t: float = 0.0
+var _reinforced: bool = false
 var _player: Node2D
 var _card: CanvasLayer
 
@@ -31,11 +43,17 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not GameState.is_running:
 		return
-	if _wave == 0 and not _boss_down:
-		_start_wave1()
+	# 铺垫期：只累计时间，Spawner 常规刷怪给玩家攒资源；到点才上第一波 BOSS
+	if _wave == 0:
+		_wave1_t += delta
+		if _wave1_t >= wave1_delay:
+			_start_wave1()
 		return
 	if _wave2_started and not _boss_down:
 		_wave2_t += delta
+		if not _reinforced and _wave2_t >= reinforce_at:
+			_reinforced = true
+			_wave2_reinforce()
 		if _wave2_t >= wave2_delay:
 			_spawn_boss(ABYSS, 1.0)
 
@@ -95,17 +113,24 @@ func _start_wave2() -> void:
 	_wave = 2
 	_wave2_started = true
 	_wave2_t = 0.0
+	_reinforced = false
 	_boss_down = false   # 允许第二波 BOSS 再次触发 _on_boss_defeated
 	GameState.objective_text = "目标　深巢反扑 · 第二波"
-	# 把三只新怪注入 Spawner 随机池，之后常规刷怪会混出它们
+	# 把三只新怪注入 Spawner 随机池，之后常规刷怪会大量混出它们
 	var spawner: Node = get_parent().get_node_or_null("Spawner")
 	if spawner and spawner.has_method("add_variant"):
 		spawner.add_variant(CORRODER)
 		spawner.add_variant(BURROWER)
 		spawner.add_variant(BLOOM)
-	# 立刻来一波直接刷出的新怪，给玩家即时压力
+	# 开场立刻来一批，且刷在玩家视野内（旧版 420~620 全在屏外，弹卡后看不到新怪）
 	_spawn_immediate(CORRODER, 2)
 	_spawn_immediate(BURROWER, 2)
+	_spawn_immediate(BLOOM, 1)
+
+func _wave2_reinforce() -> void:
+	# 中途补一批，避免玩家清完开场怪后空场干等 BOSS
+	_spawn_immediate(BURROWER, 2)
+	_spawn_immediate(CORRODER, 1)
 	_spawn_immediate(BLOOM, 1)
 
 func _spawn_immediate(stats: EnemyStats, n: int) -> void:
@@ -120,5 +145,5 @@ func _spawn_immediate(stats: EnemyStats, n: int) -> void:
 			continue
 		e.configure(stats)
 		var angle: float = randf() * TAU
-		var r: float = randf_range(420.0, 620.0)
+		var r: float = randf_range(wave2_spawn_min, wave2_spawn_max)
 		e.global_position = _player.global_position + Vector2(cos(angle), sin(angle)) * r

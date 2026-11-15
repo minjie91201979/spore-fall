@@ -12,11 +12,12 @@ max_health = 34.0
 attack_power = 12.0
 alert_radius = 360.0
 behavior = "ambush"
-tint = Color(0.46, 0.26, 0.72, 1)
+# 写实概念图已自带配色，tint 保持近白；深紫 tint 会糊成一团
+tint = Color(1.0, 0.97, 1.0, 1)
 blood_color = Color(0.3, 0.16, 0.48, 1)
 sprite_texture = ExtResource("2_tex")
-scale_mult = 0.95
-spawn_weight_tier0 = 0.12
-spawn_weight_per_tier = 0.1
+scale_mult = 1.28
+spawn_weight_tier0 = 0.4
+spawn_weight_per_tier = 0.16
 contact_radius = 24.0
 score_value = 18

@@ -12,12 +12,13 @@ max_health = 95.0
 attack_power = 10.0
 alert_radius = 420.0
 behavior = "walk"
-tint = Color(0.8, 0.84, 0.3, 1)
+# 写实概念图已自带配色，tint 只做极轻微提亮；深 tint 会把暗部压成黑团
+tint = Color(1.0, 1.0, 0.96, 1)
 blood_color = Color(0.58, 0.62, 0.12, 1)
 sprite_texture = ExtResource("2_tex")
-scale_mult = 1.15
-spawn_weight_tier0 = 0.1
-spawn_weight_per_tier = 0.16
+scale_mult = 1.4
+spawn_weight_tier0 = 0.42
+spawn_weight_per_tier = 0.2
 contact_radius = 28.0
 score_value = 24
 ranged_attack = "venom"
