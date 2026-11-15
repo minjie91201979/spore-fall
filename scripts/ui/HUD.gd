@@ -177,8 +177,12 @@ func _process(delta: float) -> void:
 	combo_label.visible = not story
 	time_label.visible = not story
 	if _objective:
-		_objective.visible = story and GameState.objective_text != ""
+		# 生存模式接入双波次后也要显示阶段目标（WaveMode 会写 objective_text）。
+		# 剧情仍用左上角 (20,20)；生存模式左上被 SCORE/COMBO/TIME/AMMO/WEAPON 占满，
+		# 挪到其下方 (20,210)，同时避开顶部中央的 BossBar。
+		_objective.visible = GameState.objective_text != ""
 		_objective.text = GameState.objective_text
+		_objective.position = Vector2(20, 20) if story else Vector2(20, 210)
 	if _keys:
 		# 运行时再取剧情存档，避免 HUD 在 Autoload 注册前编译依赖 StoryState。
 		var keys := ""

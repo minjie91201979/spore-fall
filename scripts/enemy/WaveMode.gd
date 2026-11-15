@@ -29,6 +29,7 @@ const ABYSS := preload("res://assets/data/enemy_abyss.tres")
 var _wave: int = 0
 var _boss_down: bool = false
 var _wave1_t: float = 0.0
+var _last_warmup_sec: int = -1
 var _wave2_started: bool = false
 var _wave2_t: float = 0.0
 var _reinforced: bool = false
@@ -43,9 +44,16 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not GameState.is_running:
 		return
-	# 铺垫期：只累计时间，Spawner 常规刷怪给玩家攒资源；到点才上第一波 BOSS
+	# 铺垫期：只累计时间，Spawner 常规刷怪给玩家攒资源；到点才上第一波 BOSS。
+	# 目标文案必须在这里写而不是 _ready()：Godot 的 _ready 是子节点先于父节点，
+	# Arena._ready() 里的 GameState.start_run() 会把 objective_text 清空，覆盖掉 _ready 里设的值。
+	# 每秒才改一次字符串，避免每帧刷新 Label。
 	if _wave == 0:
 		_wave1_t += delta
+		var left: int = maxi(0, int(ceil(wave1_delay - _wave1_t)))
+		if left != _last_warmup_sec:
+			_last_warmup_sec = left
+			GameState.objective_text = "目标　清剿孢群 · 母巢孢 %ds 后苏醒" % left
 		if _wave1_t >= wave1_delay:
 			_start_wave1()
 		return

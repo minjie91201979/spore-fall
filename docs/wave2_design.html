@@ -255,6 +255,10 @@
     <p class="note">概念图经 <code style="color:var(--glow)">make_sprites.gd</code> 泛洪去白底 → 归一化 → <code>polish_wave2_sprites.py</code> 提亮与烘焙轮廓 → 游戏精灵；下方为 1152×648 打磨后实机截图。</p>
     <div class="shotgrid">
       <figure class="shotfig">
+        <img src="art/ingame_warmup_hud.png" alt="铺垫期 HUD 实机截图">
+        <figcaption>开局 45s 铺垫期：左上信息块下方显示倒计时目标「清剿孢群 · 母巢孢 44s 后苏醒」，玩家明确知道在等什么、还要等多久。</figcaption>
+      </figure>
+      <figure class="shotfig">
         <img src="art/ingame_wave_card.png" alt="第二波过渡卡实机截图">
         <figcaption>第一波 BOSS 击溃后弹出「第二波 · WAVE 2 / 深巢反扑」过渡卡（5s 自动继续或点「继续」）。</figcaption>
       </figure>
@@ -264,8 +268,22 @@
       </figure>
     </div>
     <div class="map" style="margin-top:16px">
-      <p><span class="tag">验收</span> <code>tests/probe_wave.gd</code> 端到端波次探针 <b style="color:var(--glow)">35 / 35 PASS</b>（tint/体型/权重/节奏参数 + 第一波 BOSS → 击溃 → 暂停弹卡 → 继续 → 第二波注入 3 新怪 → 召唤渊噬孢 → 击溃 → 区域肃清）。</p>
-      <p><span class="tag">截图</span> <code>tools/shot_wave2.gd</code> 带窗口实机取证（headless 取不到 framebuffer）。</p>
+      <p><span class="tag">验收</span> <code>tests/probe_wave.gd</code> <b style="color:var(--glow)">35 / 35 PASS</b>（完整链路 + tint/体型/权重参数）；<code>tests/probe_wave_timing.gd</code> <b style="color:var(--glow)">21 / 21 PASS</b>（补强时序分支，见下节）。</p>
+      <p><span class="tag">截图</span> <code>tools/shot_wave2.gd</code> / <code>shot_warmup.gd</code> 带窗口实机取证（headless 取不到 framebuffer）。</p>
+      <p><span class="tag">打包</span> <code>export_presets.cfg</code> 排除 <code>docs/*, tools/*, tests/*</code>，APK <b>37.1MB → 32.05MB</b>；4 张打磨后贴图的包内哈希与本地导入缓存逐一比对一致。</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="bar"></span>时序补强验证（Timing Coverage）</h2>
+    <p class="note">主探针为了跳过等待把铺垫期与 BOSS 延迟都置 0，链路能跑完，但三条新增逻辑其实从未被真正执行过。补一个独立时序探针覆盖它们。</p>
+    <div class="map">
+      <p><span class="tag">手法</span> headless 单帧 delta 极小、靠墙钟等不完 45s，所以不硬等 —— 把内部计时器 <code>set</code> 到阈值前一点，让引擎真实的 <code>_process()</code> 走完剩余部分触发分支。</p>
+      <p><span class="tag">铺垫期</span> 断言 <code>_wave==0</code>、无 BOSS、倒计时文案与 HUD 目标栏在<b>生存模式可见且不遮挡</b>；计时到点后自动进入第一波并召唤母巢孢。</p>
+      <p><span class="tag">分批增援</span> 断言 6s 补怪真的执行（场上杂兵 <b>6 → 10</b>）、且此时 BOSS 尚未登场。</p>
+      <p><span class="tag">权重分布</span> 采样 <code>_pick_variant()</code> 1200 次，新怪实际刷出占比 <b>43.3%</b>（打磨前约 16%），确认「第二波换了批怪」不是只改了配置数字。</p>
+      <p><span class="tag">顺带修的 UI Bug</span> <code>HUD.gd</code> 原逻辑 <code>_objective.visible = story and ...</code>，生存模式目标栏恒隐藏 —— WaveMode 写的三段波次文案玩家一个字都看不到。现在生存模式也显示，位置挪到左上信息块下方 <code>(20,210)</code> 避开 SCORE/COMBO/AMMO 与顶部 BossBar。</p>
+      <p><span class="tag">顺序坑</span> 铺垫期文案必须写在 <code>_process()</code> 而非 <code>_ready()</code>：Godot 子节点 <code>_ready</code> 先于父节点，<code>Arena._ready()</code> 里的 <code>start_run()</code> 会清空 <code>objective_text</code>。</p>
     </div>
   </section>
 
