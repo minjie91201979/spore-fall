@@ -13,14 +13,14 @@ const BASE_SCALE := 0.19   # 贴图主体已归一化（210/256），该值对�
 
 const PICKUP_SCENE := preload("res://scenes/world/Pickup.tscn")
 const ENEMY_BULLET_SCENE := preload("res://scenes/world/EnemyBullet.tscn")
-const ANIM_SCRIPT := preload("res://scripts/enemy/EnemyAnim.gd")
+const FRAME_PLAYER_SCRIPT := preload("res://scripts/enemy/FramePlayer.gd")
 
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var particles: GPUParticles2D = $KillParticles
 @onready var outline: Sprite2D = $Outline
 
-# 程序化动画层（§11.14）：只改 Sprite/Outline 的 transform，不碰玩法状态
-var anim = ANIM_SCRIPT.new()
+# 帧序列播放器（§11.15）：全部运动来自按序排列的帧图片，不做任何程序化变换
+var frames = FRAME_PLAYER_SCRIPT.new()
 
 var _default_tex: Texture2D
 
@@ -157,8 +157,12 @@ func _apply_visual() -> void:
 	if is_instance_valid(outline):
 		outline.texture = spr.texture
 		outline.scale = spr.scale
-	# 换怪 / 池化复用时重新配置动画风格并清掉上一只残留的相位与脉冲
-	anim.setup(spr, outline, _base_scale, stats)
+	# 换怪 / 池化复用时重新绑定帧序列。key 由贴图文件名推导
+	# （enemy_corroder.png -> corroder），无需给 13 个 .tres 加字段。
+	var key := ""
+	if tex:
+		key = tex.resource_path.get_file().get_basename().trim_prefix("enemy_")
+	frames.setup(spr, outline, key, tex if tex else _default_tex)
 
 func _restore_tint() -> void:
 	var spr: Sprite2D = $Sprite
@@ -187,11 +191,11 @@ func _set_nav_query(enabled: bool) -> void:
 	if enabled:
 		_nav_repath_t = 0.0
 
-# 动画层走独立 _process：纯视觉逻辑，不该依赖 _player 存在或玩法状态机的早退。
+# 帧播放走独立 _process：纯视觉逻辑，不该依赖 _player 存在或玩法状态机的早退。
 # 放在 _physics_process 里会因为「玩家死亡 / 切场景 / 潜伏分支 return」而整体僵住。
 func _process(delta: float) -> void:
 	if active:
-		anim.tick(delta, self)
+		frames.tick(delta)
 
 func _physics_process(delta: float) -> void:
 	if not active or not is_instance_valid(_player):
@@ -246,14 +250,12 @@ func _physics_process(delta: float) -> void:
 		var dmg: float = stats.attack_power if stats else 8.0
 		if is_boss and _charge_state == 2:
 			dmg *= 1.6
-		anim.pulse_attack(dir)   # 贴身撞击：朝玩家一顶
+		frames.play_once()   # 贴身撞击：播放单次攻击帧序列
 		_player.take_damage(dmg)
 
-# 破土弹跳：交给动画层做纵向拉伸脉冲。
-# 旧实现用 tween 直接写 spr.scale / outline.scale，会与动画层每帧写 scale 互相覆盖，
-# 所以改为走统一的 pulse 通道（动画层是 transform 的唯一写入方）。
+# 破土出场：播放单次动作帧序列（帧图是唯一运动来源，不做任何几何变换）。
 func _emerge_pop() -> void:
-	anim.pulse_emerge()
+	frames.play_once()   # 破土：播放单次动作帧序列
 
 # 杂兵移动 + 远程攻击（§11.12）：射程带内冷却好 → 站桩蓄射（染色预警）→ 开火；
 # 太近（< min_range）或冷却中 → 照常追击，玩家贴脸即可破解远程。
@@ -307,7 +309,7 @@ func _fire_ranged(kind: String) -> void:
 	var dir: Vector2 = (_player.global_position - global_position).normalized()
 	var dmg: float = stats.attack_power * stats.ranged_damage_mult
 	var spawn_pos: Vector2 = global_position + dir * 20.0
-	anim.pulse_fire(dir)   # 开火瞬间朝射击方向一顶
+	frames.play_once()   # 开火：播放单次攻击帧序列
 	if kind == "needle":
 		Sfx.play("shoot", 1.4, -4.0)
 		_spawn_bullet(spawn_pos, dir, dmg, 460.0, {
@@ -360,7 +362,7 @@ func _boss_update(delta: float, speed: float, dir: Vector2, dist: float) -> void
 				_charge_state = 1
 				_charge_t = 0.55
 				velocity = Vector2.ZERO
-				anim.pulse_charge()   # 冲锋起手：压扁蓄力
+				frames.play_once()   # 冲锋起手：播放单次动作帧序列
 				_flash_tint(Color(1.0, 0.32, 0.32), 0.12)
 				Sfx.play("hurt", 0.45, 2.0)
 			elif can_skill:
@@ -411,7 +413,7 @@ func _cast_skill() -> void:
 	_charge_state = 0
 	_charge_cd = maxf(_charge_cd, 1.2)   # 出招后冲锋至少再等 1.2s，节奏可读
 	_skill_cd = stats.skill_interval if stats else 5.5
-	anim.pulse_cast()   # 技能释放瞬间整只胀开
+	frames.play_once()   # 技能释放：播放单次动作帧序列
 	_restore_tint()
 	var dir: Vector2 = (_player.global_position - global_position).normalized()
 	var dmg: float = stats.attack_power * 0.5
@@ -505,7 +507,7 @@ func take_damage(amount: float) -> void:
 	if not active:
 		return   # 已死/回池中的敌人不再吃伤害，防同帧双杀双计数
 	health -= amount
-	anim.pulse_hit()   # 受击挤压 + 抖动（不动 modulate，避免与 tint 染色冲突）
+	frames.play_once()   # 受击：播放单次动作帧序列
 	Juice.add_trauma(0.15)
 	Sfx.play("hit")
 	if is_boss:
