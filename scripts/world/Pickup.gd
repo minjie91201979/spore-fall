@@ -118,11 +118,6 @@ func _collect() -> void:
 		elif _player:
 			_player.ammo += ammo_amount
 			EventBus.pickup_collected.emit("ammo", ammo_amount)
-	else:
-		# 剧情晶体只进货币，不加生存分数
-		if not GameState.is_story():
-			GameState.score += CRYSTAL_SCORE
-		GameState.add_crystal()   # 晶体同时是武器升级货币（攒满自动升级）
 	elif kind == "false":
 		# §11.15 伪孢孢诱饵：拾取反扣血 + toast 提示「腐化结晶」
 		Sfx.play("hit", 0.5, 1.0)
@@ -131,6 +126,11 @@ func _collect() -> void:
 		if _player and _player.has_method("take_damage"):
 			_player.take_damage(penalty)
 		EventBus.corrupt_pickup.emit(penalty)
+	else:
+		# 剧情晶体只进货币，不加生存分数
+		if not GameState.is_story():
+			GameState.score += CRYSTAL_SCORE
+		GameState.add_crystal()   # 晶体同时是武器升级货币（攒满自动升级）
 	# 放大淡出小爆闪
 	set_physics_process(false)
 	var tw := create_tween()
