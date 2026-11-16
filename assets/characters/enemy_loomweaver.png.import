@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cygj1ppas1luo"
-valid=false
+uid="uid://d1hs3wq2gx4kv"
+path="res://.godot/imported/enemy_loomweaver.png-774ebde287a5875756cb18dcbdcfab16.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/characters/enemy_loomweaver.png"
+dest_files=["res://.godot/imported/enemy_loomweaver.png-774ebde287a5875756cb18dcbdcfab16.ctex"]
 
 [params]
 

@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bakis6hxmfnx1"
-valid=false
+uid="uid://c4rarpi1ttm5v"
+path="res://.godot/imported/enemy_linker.png-6ba3472b653aa7c18429650d6fd66083.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/characters/enemy_linker.png"
+dest_files=["res://.godot/imported/enemy_linker.png-6ba3472b653aa7c18429650d6fd66083.ctex"]
 
 [params]
 

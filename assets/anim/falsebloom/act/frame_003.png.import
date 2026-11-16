@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://kuqoh52ualvo"
-valid=false
+uid="uid://c7hp2717euydl"
+path="res://.godot/imported/frame_003.png-4a22dabdb52bf13c5f578e4507d49ee7.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/anim/falsebloom/act/frame_003.png"
+dest_files=["res://.godot/imported/frame_003.png-4a22dabdb52bf13c5f578e4507d49ee7.ctex"]
 
 [params]
 

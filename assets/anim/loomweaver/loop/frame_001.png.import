@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cok6ktur6swd3"
-valid=false
+uid="uid://bhkl14aho5fwk"
+path="res://.godot/imported/frame_001.png-668bdfaaa3480f8ae7a3f73f5334c62f.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/anim/loomweaver/loop/frame_001.png"
+dest_files=["res://.godot/imported/frame_001.png-668bdfaaa3480f8ae7a3f73f5334c62f.ctex"]
 
 [params]
 

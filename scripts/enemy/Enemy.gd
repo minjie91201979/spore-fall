@@ -66,6 +66,8 @@ var _mirror_cache: Array[Vector2] = []
 var _mirror_burst_cd: float = 0.0         # 两次 mirror burst 间隔计时器
 # link_partner_id：链结对另只 linker 的 instance_id，-1 表示无对家
 var _link_partner_id: int = -1
+# link_share_incoming：本次伤害是否由对家分摊而来（防递归反弹）
+var _link_share_incoming: bool = false
 # wraith_crystal_count：场上晶体快照数（每 frame_steal_interval 秒刷新一次，避免每帧遍历 pickup）
 var _wraith_crystal_count: int = 0
 var _wraith_steal_t: float = 0.0          # 偷晶体计时器
@@ -117,6 +119,7 @@ func reset_for_reuse() -> void:
 	if _link_partner_id != -1:
 		_dissolve_link()
 	_link_partner_id = -1
+	_link_share_incoming = false
 	_wraith_crystal_count = 0
 	_wraith_steal_t = 0.0
 
@@ -177,6 +180,7 @@ func _setup_wave3_traits(behavior: String) -> void:
 	if _link_partner_id != -1:
 		_dissolve_link()
 	_link_partner_id = -1
+	_link_share_incoming = false
 	match behavior:
 		"mirror":
 			_mirror_burst_cd = 0.0   # 开局即冷却好
@@ -584,7 +588,10 @@ func _tick_burn(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	if not active:
 		return   # 已死/回池中的敌人不再吃伤害，防同帧双杀双计数
-	amount = apply_link_sharing(-1, amount)   # §11.16 Linker：分摊伤害
+	# §11.16 Linker：按比例把伤害分摊给链结对家。
+	# _link_share_incoming 标记「这一击是由对家分摊过来的」，防止 A→B→A 递归反弹。
+	if _link_partner_id != -1 and not _link_share_incoming:
+		amount = _split_damage_to_partner(amount)
 	health -= amount
 	frames.play_once()   # 受击：播放单次动作帧序列
 	Juice.add_trauma(0.15)
@@ -745,32 +752,36 @@ func _register_link(partner_id: int, stats_others: EnemyStats) -> bool:
 	_link_partner_id = partner_id
 	return true
 
-## §11.16 Linker：解除链结对（死亡或池化复用前）
+## §11.16 Linker：解除链结对（死亡或池化复用前）。
+## 必须同时清掉对家缓存的 _link_partner_id，否则对家会指向一个已经断链的 id。
 func _dissolve_link() -> void:
 	if _link_partner_id == -1:
 		return
+	var partner_id: int = _link_partner_id
 	_static_links.erase(get_instance_id())
-	_static_links.erase(_link_partner_id)
+	_static_links.erase(partner_id)
+	var partner_node: Node = _find_enemy_by_id(partner_id)
+	if partner_node != null and is_instance_valid(partner_node):
+		partner_node.set("_link_partner_id", -1)
 	_link_partner_id = -1
 
-## §11.16 Linker：damage 传入时同步给 partner（对方 take_damage 也会被同样调用，
-##                 所以实际只触发一次分摊——用 _link_partner_id 作为源判断可防止双重分摊）
-func apply_link_sharing(src_id: int, amount: float) -> float:
-	if _link_partner_id == -1 or src_id != _link_partner_id:
-		return amount
-	# 通过静态字典找对家节点
-	var partner_id: int = _static_links.get(get_instance_id(), -1)
-	if partner_id == -1:
-		return amount
-	var partner_node: Node = _find_enemy_by_id(partner_id)
+## §11.16 Linker：把 amount 的一部分转给对家，返回本体实际承受的剩余伤害。
+## 对家最多吃自身上限 20%，防一次高伤把对家直接秒掉（读起来也更「分摊」而非「转移」）。
+func _split_damage_to_partner(amount: float) -> float:
+	var partner_node: Node = _find_enemy_by_id(_link_partner_id)
 	if partner_node == null or not is_instance_valid(partner_node):
 		return amount
-	# partner 最多承受自身 max_health 的 20%（防瞬杀），超出仍由 src 吃
-	var partner_max_hp: float = partner_node.get("max_health") as float
-	var capped_share: float = minf(amount * 0.5, partner_max_hp * 0.2)
-	if partner_node.has_method("take_damage"):
-		partner_node.take_damage(capped_share)
-	return amount - capped_share
+	if not partner_node.has_method("take_damage"):
+		return amount
+	var ratio: float = stats.link_dmg_share_ratio if stats else 0.5
+	var partner_max_hp: float = float(partner_node.get("max_health"))
+	var share: float = minf(amount * ratio, partner_max_hp * 0.2)
+	if share <= 0.0:
+		return amount
+	partner_node.set("_link_share_incoming", true)
+	partner_node.take_damage(share)
+	partner_node.set("_link_share_incoming", false)
+	return amount - share
 
 ## 根据 instance_id 在 enemy 组里查找对应节点
 func _find_enemy_by_id(id: int) -> Node:

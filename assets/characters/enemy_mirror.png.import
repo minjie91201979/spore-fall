@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dln60jrcqj3rk"
-valid=false
+uid="uid://bnscljtf1ildl"
+path="res://.godot/imported/enemy_mirror.png-fb1ef135af008f91ba38aacfc239ac9a.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/characters/enemy_mirror.png"
+dest_files=["res://.godot/imported/enemy_mirror.png-fb1ef135af008f91ba38aacfc239ac9a.ctex"]
 
 [params]
 

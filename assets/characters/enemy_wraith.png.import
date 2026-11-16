@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://be7gepivm0cfb"
-valid=false
+uid="uid://sp3gu2io44pi"
+path="res://.godot/imported/enemy_wraith.png-ae17ad8326d1123ec3042d7108699c84.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/characters/enemy_wraith.png"
+dest_files=["res://.godot/imported/enemy_wraith.png-ae17ad8326d1123ec3042d7108699c84.ctex"]
 
 [params]
 

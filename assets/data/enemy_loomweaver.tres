@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
-[ext_resource type="Texture2D" path="res://assets/characters/enemy_lurker.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_loomweaver.png" id="2_tex"]
 [ext_resource type="Resource" path="res://assets/data/enemy_corroder.tres" id="3_summon"]
 
 [resource]
@@ -13,18 +13,18 @@ max_health = 6800.0
 attack_power = 28.0
 alert_radius = 900.0
 behavior = "loomweaver"
-tint = Color(1.0, 1.0, 1.0, 1)       # 近白，保留贴图层次
-blood_color = Color(0.72, 0.38, 0.18, 1)   # 熔金血色
+tint = Color(1.0, 1.0, 1.0, 1)
+blood_color = Color(0.72, 0.38, 0.18, 1)
 sprite_texture = ExtResource("2_tex")
-scale_mult = 4.2                       # 比渊噬孢高约 20%（六针状肢体拉伸）
+scale_mult = 4.2
 spawn_weight_tier0 = 0.0
 spawn_weight_per_tier = 0.0
 is_boss = true
 score_value = 1200
 contact_radius = 68.0
-charge_interval = 2.2                  # 更快的冲锋节奏
+charge_interval = 2.2
 charge_speed = 5.2
-skill_interval = 4.0                   # 技能更快出招
+skill_interval = 4.0
 skill_range = 720.0
 radial_count = 20
 breath_count = 10

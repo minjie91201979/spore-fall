@@ -7,12 +7,12 @@
 script = ExtResource("1_stats")
 display_name = "蚀晶孢 · Crystal Wraith"
 hearing = 180.0
-move_speed = 62.0        # §11.17 基础速度就快
+move_speed = 62.0
 max_health = 50.0
 attack_power = 5.0
 alert_radius = 340.0
 behavior = "wraith"
-tint = Color(0.88, 0.88, 0.92, 1)    # 白噪灰
+tint = Color(0.88, 0.88, 0.92, 1)
 blood_color = Color(0.62, 0.62, 0.68, 1)
 sprite_texture = ExtResource("2_tex")
 scale_mult = 1.15

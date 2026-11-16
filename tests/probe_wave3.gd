@@ -60,12 +60,13 @@ func _initialize() -> void:
 		_check(fake_pickup != null, "FALSE_PICKUP_SPAWNED_AFTER_DEATH")
 		if fake_pickup:
 			# 玩家拾取伪晶体 → 应扣血并 toast
+			var pl: Node2D = get_first_node_in_group("player") as Node2D
 			fake_pickup.kind = "false"
 			fake_pickup.fake_hp_penalty = 25.0
-			fake_pickup.global_position = (gs._player as Node2D).global_position + Vector2.ONE * 10.0
+			fake_pickup.global_position = pl.global_position + Vector2.ONE * 10.0
 			fake_pickup._collect()
 			await _frames(3)
-			_check((gs._player as Node2D).health < (gs._player as Node2D).max_health, "FALSE_CRYSTAL_HP_PENALTY_APPLIED")
+			_check(pl.health < pl.max_health, "FALSE_CRYSTAL_HP_PENALTY_APPLIED")
 
 	# ---- §11.16 Linker 配对 + LinkSystem ----
 	var linker_a := _find_active_by_behavior("linker")
@@ -98,22 +99,27 @@ func _initialize() -> void:
 	_check(wraith != null, "WRAITH_SPAWNED")
 	if wraith:
 		_check(wraith.stats.wraith_crystal_boost_per_crystal > 0.0, "WRAITH_BOOST_CONFIGURED")
+		# headless 场上可能一颗晶体都没有（没有击杀掉落），主动补一颗真晶体做加速基线
+		if _count_ground_crystals_no_fake() < 1:
+			_spawn_test_crystal(wraith.global_position + Vector2(60, 0))
+			await _frames(2)
 		var crystal_count := _count_ground_crystals_no_fake()
 		_check(crystal_count >= 1, "GROUND_CRYSTALS_EXIST(%d)" % crystal_count)
 		if crystal_count > 0:
-			var boosted_speed := wraith.stats.move_speed + \
-				minf(wraith.stats.wraith_crystal_boost_per_crystal * crystal_count, 40.0)
-			_check(boosted_speed > wraith.stats.move_speed,
+			var base_speed: float = wraith.stats.move_speed
+			var boosted_speed: float = base_speed + \
+				minf(wraith.stats.wraith_crystal_boost_per_crystal * float(crystal_count), 40.0)
+			_check(boosted_speed > base_speed,
 				"WRAITH_SPEED_BOOSTED(base=%.1f boosted=%.1f crystals=%d)" % [
-					wraith.stats.move_speed, boosted_speed, crystal_count])
+					base_speed, boosted_speed, crystal_count])
 
 	# ---- §11.18 Loom Weaver BOSS ----
 	var loom := _find_active_by_behavior("boss")   # 用行为字段区分杂兵 vs boss（loomweaver behavior="boss"）
 	# 注意：渊噬孢也是 boss，需要通过 stats 过滤
 	if loom:
-		var loom_stats := loom.get("stats")
+		var loom_stats = loom.get("stats")
 		_check(loom_stats != null and "织理者" in loom_stats.display_name,
-			"LOOM_WEAVER_BOSS_SPAWNED(name=%s)" % loom_stats.display_name if loom_stats else "null")
+			"LOOM_WEAVER_BOSS_SPAWNED(name=%s)" % (loom_stats.display_name if loom_stats else "null"))
 
 	print("WAVE3_PASS=%d FAIL=%d" % [passc, failc])
 	print("OK" if failc == 0 else "FAILED")
@@ -189,9 +195,10 @@ func _is_mirror_firing(mirror: Node) -> bool:
 	return mirror._mirror_cache.size() >= 3
 
 func _count_bullets_kind(kind: String) -> int:
+	# EnemyBullet 把发射类型存在私有字段 _kind（不是 kind），这里两种都兼容
 	var n := 0
 	for b in get_nodes_in_group("enemy_bullet"):
-		if b.get("kind") == kind or (b.get_meta("opts", {}).get("kind") == kind):
+		if b.get("_kind") == kind or b.get("kind") == kind:
 			n += 1
 	return n
 
@@ -207,6 +214,13 @@ func _count_ground_crystals_no_fake() -> int:
 		if p.get("kind") == "crystal" and not p.get("_collected"):
 			n += 1
 	return n
+
+## 直接在场景里放一颗真晶体，供蚀晶孢加速断言使用
+func _spawn_test_crystal(pos: Vector2) -> void:
+	var pk: Node2D = load("res://scenes/world/Pickup.tscn").instantiate()
+	pk.kind = "crystal"
+	pk.position = pos
+	current_scene.add_child(pk)
 
 func _frames(n: int) -> void:
 	for i in n:

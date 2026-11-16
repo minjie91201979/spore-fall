@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c4cmhr072uyjs"
-valid=false
+uid="uid://cnw4e7ascir7n"
+path="res://.godot/imported/frame_003.png-23011e3e5c13e79cc8c86192e36e858e.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/anim/mirror/act/frame_003.png"
+dest_files=["res://.godot/imported/frame_003.png-23011e3e5c13e79cc8c86192e36e858e.ctex"]
 
 [params]
 

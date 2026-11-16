@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dh5gm74diaynq"
-valid=false
+uid="uid://c0rpy7sk2u5o"
+path="res://.godot/imported/frame_003.png-fb3206057e2a85035ba07d331c7176b6.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/anim/wraith/loop/frame_003.png"
+dest_files=["res://.godot/imported/frame_003.png-fb3206057e2a85035ba07d331c7176b6.ctex"]
 
 [params]
 

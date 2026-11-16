@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4uitxv5u1mbf"
-valid=false
+uid="uid://ch335dhomkih4"
+path="res://.godot/imported/frame_002.png-453d11811836c26110565d0441b05fc3.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/anim/mirror/loop/frame_002.png"
+dest_files=["res://.godot/imported/frame_002.png-453d11811836c26110565d0441b05fc3.ctex"]
 
 [params]
 

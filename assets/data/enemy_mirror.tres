@@ -7,12 +7,12 @@
 script = ExtResource("1_stats")
 display_name = "镜影孢 · Mirror Spore"
 hearing = 200.0
-move_speed = 0.0        # §11.14 镜影孢不移动，原地站桩
+move_speed = 0.0
 max_health = 60.0
 attack_power = 6.0
 alert_radius = 400.0
 behavior = "mirror"
-tint = Color(0.35, 0.78, 0.95, 1)   # 电蓝光晕
+tint = Color(0.35, 0.78, 0.95, 1)
 blood_color = Color(0.22, 0.55, 0.72, 1)
 sprite_texture = ExtResource("2_tex")
 scale_mult = 0.95

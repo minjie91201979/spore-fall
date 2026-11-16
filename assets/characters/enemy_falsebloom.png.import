@@ -2,12 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bdys1oop4vkpf"
-valid=false
+uid="uid://b08p4atoka4nd"
+path="res://.godot/imported/enemy_falsebloom.png-f7fd7aca4b11ef4bd5c6d991904fcc71.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://assets/characters/enemy_falsebloom.png"
+dest_files=["res://.godot/imported/enemy_falsebloom.png-f7fd7aca4b11ef4bd5c6d991904fcc71.ctex"]
 
 [params]
 
