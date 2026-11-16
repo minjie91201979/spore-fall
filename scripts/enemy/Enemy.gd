@@ -773,7 +773,7 @@ func apply_link_sharing(src_id: int, amount: float) -> float:
 	return amount - capped_share
 
 ## 根据 instance_id 在 enemy 组里查找对应节点
-static func _find_enemy_by_id(id: int) -> Node:
+func _find_enemy_by_id(id: int) -> Node:
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		if enemy.get_instance_id() == id:
 			return enemy
