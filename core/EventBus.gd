@@ -17,3 +17,5 @@ signal quality_changed(level: int)
 
 # 生涯成就解锁（§11.8）：局内实时广播，HUD 用 toast 提示
 signal achievement_unlocked(display_name: String)
+# §11.15 伪晶体拾取：HUD 显示橙色腐蚀 toast
+signal corrupt_pickup(penalty_hp: float)

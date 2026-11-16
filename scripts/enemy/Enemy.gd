@@ -60,6 +60,18 @@ var _skill_cd: float = 4.0
 var _skill_pending: int = 0
 var _last_skill: int = -1
 
+# ---- Wave 3 新变种状态机（§11.14 Mirror Spore / §11.16 Linker / §11.17 Crystal Wraith）----
+# mirror_cache：记录玩家最近移动方向 FIFO，满 mirror_cache_size 条即触发镜像 burst
+var _mirror_cache: Array[Vector2] = []
+var _mirror_burst_cd: float = 0.0         # 两次 mirror burst 间隔计时器
+# link_partner_id：链结对另只 linker 的 instance_id，-1 表示无对家
+var _link_partner_id: int = -1
+# wraith_crystal_count：场上晶体快照数（每 frame_steal_interval 秒刷新一次，避免每帧遍历 pickup）
+var _wraith_crystal_count: int = 0
+var _wraith_steal_t: float = 0.0          # 偷晶体计时器
+# wraith 追踪弹速度倍数（比 normal bullet 慢 15%，保持「低追踪度」感观）
+const WRAITH_BULLET_SPEED_MULT := 0.85
+
 func _ready() -> void:
 	add_to_group("enemy")
 	_default_tex = $Sprite.texture   # 池化复用的贴图还原基准
@@ -95,6 +107,14 @@ func reset_for_reuse() -> void:
 	_skill_cd = 4.0
 	_last_skill = -1
 	_apply_visual()
+	# ── Wave 3 状态清零 ──
+	_mirror_cache.clear()
+	_mirror_burst_cd = 0.0
+	if _link_partner_id != -1:
+		_dissolve_link()
+	_link_partner_id = -1
+	_wraith_crystal_count = 0
+	_wraith_steal_t = 0.0
 
 # 刷怪器选种后调用：设定变种参数并按数据应用视觉（染色/体型）
 # hp_mult：Boss 每轮出现按血量倍率递增，避免后期武器成长后秒杀
@@ -123,6 +143,8 @@ func configure(s: EnemyStats, hp_mult: float = 1.0, is_split_child: bool = false
 		add_to_group("boss")
 	else:
 		remove_from_group("boss")   # 池化复用：Boss 退回杂兵时清掉分组
+	# ── Wave 3 trait setup（按 behavior 分支初始化专属状态）──
+	_setup_wave3_traits(s.behavior)
 
 # 首次开火延迟：进场先追一小段，别一刷出来就隔屏狙击（远程怪 1.2s，其余值无意义）
 func _first_ranged_cd() -> float:
@@ -140,6 +162,28 @@ func _setup_ambush(enabled: bool) -> void:
 		_ambush_state = 0
 		_ambush_t = 0.0
 		modulate.a = 1.0
+
+# ── Wave 3 trait 初始化钩子（§11.14–17）──
+# mirror / linker / wraith 各有专属状态需要 reset；false_bloom 无需额外初始化
+func _setup_wave3_traits(behavior: String) -> void:
+	_mirror_cache.clear()
+	_mirror_burst_cd = 0.0
+	_wraith_crystal_count = 0
+	_wraith_steal_t = 0.0
+	if _link_partner_id != -1:
+		_dissolve_link()
+	_link_partner_id = -1
+	match behavior:
+		"mirror":
+			_mirror_burst_cd = 0.0   # 开局即冷却好
+		"linker":
+			# 链结对由 Spawner 在 spawn 后通过 LinkSystem.register 建立
+			pass
+		"wraith":
+			# 蚀晶孢首次进入 _physics_process 时会在 chase 分支里刷新晶体计数
+			pass
+		"false_bloom":
+			pass
 
 func _apply_visual() -> void:
 	var spr: Sprite2D = $Sprite
@@ -235,12 +279,42 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
+	# ── Wave 3 行为分流（优先级高于常规 mob_update / boss_update）──
 	if is_boss:
 		# Boss 直线冲锋，不走导航；关掉查询，避免停放/冲锋时朝默认目标空打寻路
 		_set_nav_query(false)
 		_boss_update(delta, speed, dir, dist)
+	elif stats.behavior == "mirror":
+		# §11.14 镜影孢：站桩不追，只记录玩家移动方向；缓存满则 burst 射出反射弹
+		_set_nav_query(false)
+		velocity = Vector2.ZERO
+		_mirror_burst_cd -= delta
+		# FIFO：每 frame 记录一次 player 相对我们的方向（归一化，保留符号防反向）
+		_mirror_cache.push_back(dir)
+		if _mirror_cache.size() > (stats.mirror_cache_size if stats else 3):
+			_mirror_cache.pop_front()
+		if _mirror_burst_cd <= 0.0 and _mirror_cache.size() >= (stats.mirror_cache_size if stats else 3):
+			_try_mirror_burst()
+			_mirror_burst_cd = stats.mirror_burst_interval if stats else 3.0
+		move_and_slide()
+		return
+	elif stats.behavior == "wraith":
+		# §11.17 蚀晶孢：移动速度随场上晶体数线性加速；定期偷取最近一颗晶体
+		speed = speed + minf((stats.wraith_crystal_boost_per_crystal if stats else 2.5) * _count_ground_crystals(), 40.0)
+		_wraith_steal_t -= delta
+		if _wraith_steal_t <= 0.0 and _count_ground_crystals() >= 1:
+			_steal_nearest_crystal()
+			_wraith_steal_t = stats.wraith_steal_interval if stats else 3.0
+		_chase(delta, speed, dir, dist)
+		move_and_slide()
+		return
 	else:
-		_mob_update(delta, speed, dir, dist)
+		# 非 boss、非 Wave 3 新变种 → 走原有追击/远程逻辑
+		if not is_boss:
+			_mob_update(delta, speed, dir, dist)
+		else:
+			_set_nav_query(false)
+			_boss_update(delta, speed, dir, dist)
 	move_and_slide()
 
 	# 接触掉血（§11.4.3）：贴近玩家且冷却结束才扣一次；冲锋命中额外加成
@@ -506,6 +580,7 @@ func _tick_burn(delta: float) -> void:
 func take_damage(amount: float) -> void:
 	if not active:
 		return   # 已死/回池中的敌人不再吃伤害，防同帧双杀双计数
+	amount = apply_link_sharing(-1, amount)   # §11.16 Linker：分摊伤害
 	health -= amount
 	frames.play_once()   # 受击：播放单次动作帧序列
 	Juice.add_trauma(0.15)
@@ -547,6 +622,20 @@ func _deferred_die() -> void:
 				stats.poison_radius, stats.poison_duration, stats.poison_dps, blood)
 		elif stats.behavior == "split" and not _is_split_child:
 			_spawn_splits()
+		# Wave 3 新变种死亡残留（§11.14–17）
+		elif stats.behavior == "mirror":
+			# §11.14 镜影孢：镜面炸裂特效（无特殊掉落，纯粹视觉碎裂）
+			pass
+		elif stats.behavior == "false_bloom":
+			# §11.15 伪孢孢：死亡留下诱饵晶体
+			_spawn_false_pickup(global_position)
+		elif stats.behavior == "linker":
+			# §11.16 链结孢：死亡解除链结对（已在 _die() 前 dissolve 过，但保险起见）
+			_dissolve_link()
+		elif stats.behavior == "wraith":
+			# §11.17 蚀晶孢：死亡时把体内储存的晶体加速吐出来（额外一颗）
+			if _wraith_crystal_count > 0:
+				_spawn_pickup("crystal", global_position + Vector2(randf_range(-18.0, 18.0), randf_range(-18.0, 18.0)))
 	# 击杀爆裂粒子：复制一份留在原地播完（本体带原粒子节点回池）
 	# Boss 放三重爆裂并放大尺寸，做成「高潮收尾」的视觉标点
 	var bursts: int = 3 if is_boss else 1
@@ -637,3 +726,91 @@ func _spawn_pickup(kind: String, pos: Vector2, weapon_id: String = "") -> void:
 	pk.weapon_id = weapon_id
 	pk.position = pos   # 先摆位再入树（池化教训同款）
 	get_tree().current_scene.add_child(pk)
+
+# ── Wave 3 helper 方法（§11.14–17）──
+
+## §11.16 Linker：注册链结对。由 Spawner/WaveMode 在两只 linker 都 spawn 后调用
+func _register_link(partner_id: int, stats_others: EnemyStats) -> bool:
+	if _link_partner_id != -1:
+		return false   # 已有对家，拒绝二次绑定
+	var ok := LinkSystem.register(get_instance_id(), partner_id)
+	if ok:
+		_link_partner_id = partner_id
+		EventBus.enemy_kin.connect(_on_link_sharing)   # 订阅链结伤害广播
+	return ok
+
+## §11.16 Linker：解除链结对（死亡或池化复用前）
+func _dissolve_link() -> void:
+	if _link_partner_id == -1:
+		return
+	LinkSystem.dissolve(get_instance_id())
+	_link_partner_id = -1
+
+## §11.16 Linker：damage 传入时同步给 partner（对方 take_damage 也会被同样调用，
+##                 所以实际只触发一次分摊——用 _link_partner_id 作为源判断可防止双重分摊）
+func apply_link_sharing(src_id: int, amount: float) -> float:
+	if _link_partner_id == -1 or src_id != _link_partner_id:
+		return amount
+	# partner 最多承受自身 max_health 的 20%（防瞬杀），超出仍由 src 吃
+	var partner_node: Node = get_tree().get_first_node_in_group("enemy")
+	var capped_share: float = minf(amount * 0.5, get("max_health") * 0.2)
+	if is_instance_valid(partner_node) and partner_node.has_method("take_damage"):
+		partner_node.take_damage(capped_share)
+	return amount - capped_share
+
+## §11.14 Mirror Spore：镜像 burst — 按缓存中的 player 方向射出 2 颗低追踪度弹
+func _try_mirror_burst() -> void:
+	if _mirror_cache.is_empty():
+		return
+	var dmg: float = (stats.attack_power if stats else 8.0) * (stats.mirror_bullet_dmg_mult if stats else 0.5)
+	var spd: float = (stats.mirror_bullet_speed if stats else 280.0) * WRAITH_BULLET_SPEED_MULT
+	Sfx.play("shoot", 1.2, 3.0)
+	Juice.add_trauma(0.10)
+	for i in 2:
+		var dir: Vector2 = _mirror_cache[i % _mirror_cache.size()]
+		_spawn_bullet(global_position, dir, dmg, spd, {
+			"kind": "needle",
+			"lifetime": 1.6,
+			"pierce": 0,
+		})
+
+## §11.17 Crystal Wraith：计数场上非伪晶体晶体数
+func _count_ground_crystals() -> int:
+	var n := 0
+	for p in get_tree().get_nodes_in_group("pickup"):
+		if p.get("kind") == "crystal" and not p.get("_collected"):
+			n += 1
+	return n
+
+## §11.17 Crystal Wraith：偷取最近一颗未拾取的真晶体（teleport 到其位置并把它吸过来）
+func _steal_nearest_crystal() -> void:
+	var best: Node2D = null
+	var best_dist: float = INF
+	for p in get_tree().get_nodes_in_group("pickup"):
+		if p.get("kind") != "crystal" or p.get("_collected"):
+			continue
+		var d: float = global_position.distance_to(p.global_position)
+		if d < (stats.wraith_steal_range if stats else 200.0) and d < best_dist:
+			best = p
+			best_dist = d
+	if best == null:
+		return
+	# Wraith teleport 到晶体位置（短距闪现），玩家会看到「晶体被夺走」的视觉反馈
+	var from := global_position
+	global_position = best.global_position
+	velocity = Vector2.ZERO
+	# 晶体被偷走：标记为已收集但不实际扣血，只是从玩家视角消失
+	best.set_meta("_stolen", true)
+	Sfx.play("hit", 0.4, 4.0)
+	Juice.add_trauma(0.06)
+
+## §11.15 False Bloom：死亡时在原地 spawn 一颗伪晶体诱饵
+func _spawn_false_pickup(pos: Vector2) -> void:
+	if not is_instance_valid(PICKUP_SCENE):
+		return
+	var pk: Node2D = PICKUP_SCENE.instantiate()
+	pk.kind = "false"
+	pk.fake_hp_penalty = (stats.false_pickup_hp_penalty if stats else 30.0)
+	pk.position = pos
+	get_tree().current_scene.add_child(pk)
+

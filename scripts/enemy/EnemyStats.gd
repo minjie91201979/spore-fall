@@ -65,3 +65,20 @@ extends Resource
 @export var breath_spread_deg: float = 44.0
 @export var summon_count: int = 3
 @export var summon_stats: EnemyStats       # 召唤杂兵用的参数谱（null 则跳过换弹幕）
+
+# ---- Wave 3 新变种参数（§Wave3 / §11.14 Mirror Spore / §11.15 False Bloom / §11.16 Linker / §11.17 Crystal Wraith）----
+# mirror：镜影孢 — 记录玩家最近移动方向，满 3 条缓存触发「镜像 burst」射 2 颗低追踪度弹
+@export var mirror_cache_size: int = 3              # FIFO 缓存条目数
+@export var mirror_burst_interval: float = 3.0      # 两次 mirror burst 间隔（秒）
+@export var mirror_bullet_speed: float = 280.0      # 反射弹速度（px/s）
+@export var mirror_bullet_dmg_mult: float = 0.5     # 反射弹伤害倍率 = attack_power × 该值
+# false_bloom：伪孢孢 — 死亡掉落诱饵晶体（拾取扣血），color 用于视觉区分
+@export var false_pickup_hp_penalty: float = 30.0   # 拾取伪晶体扣血量
+@export var false_pickup_color: Color = Color(1.0, 0.55, 0.1)  # 伪晶体的橙光色
+# linker：链结孢 — 与另一个 linker 配对，互相分摊 50% 伤害
+@export var link_link_radius: float = 80.0          # 寻找链结对的有效半径
+@export var link_dmg_share_ratio: float = 0.5       # 伤害分摊比例（0.5 = 各担一半）
+# wraith：蚀晶孢 — 场地上每有 1 颗晶体加速 2.5px/s；定期偷取最近的晶体归己所有
+@export var wraith_crystal_boost_per_crystal: float = 2.5
+@export var wraith_steal_interval: float = 3.0      # 偷晶体冷却（秒）
+@export var wraith_steal_range: float = 200.0       # 可偷取晶体的最大距离

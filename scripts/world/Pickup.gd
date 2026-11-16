@@ -3,13 +3,15 @@ extends Node2D
 # 纯 Node2D + 距离判定，不走物理层（吸取上一轮教训：能不碰物理就不碰物理）。
 # 行为：90px 内磁吸向玩家 → 22px 内拾取；12s 寿命，末 3s 闪烁提醒过期。
 
-@export_enum("heal", "crystal", "weapon", "ammo") var kind: String = "crystal"
+@export_enum("heal", "crystal", "weapon", "ammo", "false") var kind: String = "crystal"
 # weapon 类型专用：要发放的武器 id（掉落方填好；空串在拾取时兜底随机）
 var weapon_id: String = ""
 # 剧情定点弹药箱。生存局误刷时不发子弹，改给一颗晶体。
 var ammo_amount: int = 12
 # 任务道具不随 12 秒寿命消失
 var persistent: bool = false
+# 伪晶体（§11.15 False Bloom）扣血惩罚值，默认读 stats
+var fake_hp_penalty: float = -1.0   # <0 表示未配置，拾取时用 fallback 30.0
 
 const MAGNET_RADIUS := 90.0
 const COLLECT_RADIUS := 22.0
@@ -43,13 +45,18 @@ func _apply_visual() -> void:
 	var is_heal := kind == "heal"
 	var is_wpn := kind == "weapon"
 	var is_ammo := kind == "ammo"
+	var is_false := kind == "false"
 	heal_vis.visible = is_heal
 	heal_cross.visible = is_heal
-	crystal_vis.visible = kind == "crystal" or is_ammo
-	crystal_core.visible = kind == "crystal" or is_ammo
+	crystal_vis.visible = kind == "crystal" or is_ammo or is_false
+	crystal_core.visible = kind == "crystal" or is_ammo or is_false
 	if is_ammo:
 		crystal_vis.color = Color(0.86, 0.62, 0.22)
 		crystal_core.color = Color(0.98, 0.86, 0.45)
+	elif is_false:
+		# 伪晶体橙光微差（Wave 3 §11.15），与真晶体的青色区分
+		crystal_vis.color = Color(1.0, 0.55, 0.1)
+		crystal_core.color = Color(1.0, 0.78, 0.35)
 	weapon_vis.visible = is_wpn
 	weapon_shine.visible = is_wpn
 	weapon_icon.visible = is_wpn
@@ -116,6 +123,14 @@ func _collect() -> void:
 		if not GameState.is_story():
 			GameState.score += CRYSTAL_SCORE
 		GameState.add_crystal()   # 晶体同时是武器升级货币（攒满自动升级）
+	elif kind == "false":
+		# §11.15 伪孢孢诱饵：拾取反扣血 + toast 提示「腐化结晶」
+		Sfx.play("hit", 0.5, 1.0)
+		Juice.add_trauma(0.08)
+		var penalty: float = HEAL_AMOUNT if fake_hp_penalty < 0 else absf(fake_hp_penalty)
+		if _player and _player.has_method("take_damage"):
+			_player.take_damage(penalty)
+		EventBus.corrupt_pickup.emit(penalty)
 	# 放大淡出小爆闪
 	set_physics_process(false)
 	var tw := create_tween()

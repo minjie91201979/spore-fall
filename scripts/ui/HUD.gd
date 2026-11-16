@@ -31,6 +31,7 @@ func _ready() -> void:
 	GameState.difficulty_changed.connect(_on_difficulty_changed)
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.corrupt_pickup.connect(_on_corrupt_pickup)
 	quality_button.pressed.connect(_on_quality_pressed)
 	# 设置按钮放在「画质」正下方，沿用同一套 ghost 样式
 	settings_button = MenuChrome.ghost_button("设 置")
@@ -163,6 +164,9 @@ func _on_pickup(type: String, amount: int) -> void:
 
 func show_story_toast(text: String) -> void:
 	_show_toast(text, Color(0.75, 0.95, 0.9))
+
+func _on_corrupt_pickup(penalty: float) -> void:
+	_show_toast("[橙色] 腐化结晶：-%.0f HP" % penalty, Color(1.0, 0.6, 0.15))
 
 func _process(delta: float) -> void:
 	if _dry > 0.0:
