@@ -1,0 +1,45 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+[ext_resource type="Texture2D" path="res://assets/characters/enemy_lurker.png" id="2_tex"]
+[ext_resource type="Resource" path="res://assets/data/enemy_corroder.tres" id="3_summon"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "织理者 · Loom Weaver"
+hearing = 900.0
+move_speed = 48.0
+max_health = 6800.0
+attack_power = 28.0
+alert_radius = 900.0
+behavior = "boss"
+tint = Color(1.0, 1.0, 1.0, 1)       # 近白，保留贴图层次
+blood_color = Color(0.72, 0.38, 0.18, 1)   # 熔金血色
+sprite_texture = ExtResource("2_tex")
+scale_mult = 4.2                       # 比渊噬孢高约 20%（六针状肢体拉伸）
+spawn_weight_tier0 = 0.0
+spawn_weight_per_tier = 0.0
+is_boss = true
+score_value = 1200
+contact_radius = 68.0
+charge_interval = 2.2                  # 更快的冲锋节奏
+charge_speed = 5.2
+skill_interval = 4.0                   # 技能更快出招
+skill_range = 720.0
+radial_count = 20
+breath_count = 10
+breath_spread_deg = 52.0
+summon_count = 6
+summon_stats = ExtResource("3_summon")
+# Wave 3 特有字段（由 stats 继承自父类 EnemyStats）
+mirror_cache_size = 0
+mirror_burst_interval = 0.0
+mirror_bullet_speed = 0.0
+mirror_bullet_dmg_mult = 0.0
+false_pickup_hp_penalty = 0.0
+false_pickup_color = Color(1.0, 0.55, 0.1)
+link_link_radius = 0.0
+link_dmg_share_ratio = 0.0
+wraith_crystal_boost_per_crystal = 0.0
+wraith_steal_interval = 0.0
+wraith_steal_range = 0.0

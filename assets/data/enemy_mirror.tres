@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "镜影孢 · Mirror Spore"
+hearing = 200.0
+move_speed = 0.0        # §11.14 镜影孢不移动，原地站桩
+max_health = 60.0
+attack_power = 6.0
+alert_radius = 400.0
+behavior = "mirror"
+tint = Color(0.35, 0.78, 0.95, 1)   # 电蓝光晕
+blood_color = Color(0.22, 0.55, 0.72, 1)
+scale_mult = 0.95
+spawn_weight_tier0 = 0.25
+spawn_weight_per_tier = 0.08
+contact_radius = 22.0
+score_value = 18
+mirror_cache_size = 3
+mirror_burst_interval = 3.2
+mirror_bullet_speed = 260.0
+mirror_bullet_dmg_mult = 0.45

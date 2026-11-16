@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyStats" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy/EnemyStats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+display_name = "蚀晶孢 · Crystal Wraith"
+hearing = 180.0
+move_speed = 62.0        # §11.17 基础速度就快
+max_health = 50.0
+attack_power = 5.0
+alert_radius = 340.0
+behavior = "wraith"
+tint = Color(0.88, 0.88, 0.92, 1)    # 白噪灰
+blood_color = Color(0.62, 0.62, 0.68, 1)
+scale_mult = 1.15
+spawn_weight_tier0 = 0.2
+spawn_weight_per_tier = 0.07
+contact_radius = 24.0
+score_value = 22
+wraith_crystal_boost_per_crystal = 2.5
+wraith_steal_interval = 3.0
+wraith_steal_range = 200.0
