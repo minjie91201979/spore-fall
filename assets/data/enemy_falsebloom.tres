@@ -19,4 +19,4 @@ spawn_weight_per_tier = 0.1
 contact_radius = 24.0
 score_value = 16
 false_pickup_hp_penalty = 28.0
-false_pickup_color = Color(1.0, 0.55, 0.1)
+false_pickup_color = Color(1.0, 0.55, 0.1, 1.0)
