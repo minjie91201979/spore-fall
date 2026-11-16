@@ -10,6 +10,10 @@ build/
 *.apk
 *.idsig
 
+# 本地 Godot CLI 可执行文件（各平台各版本，体积大，不入库）
+godot.exe
+godot
+
 # docs/art 是设计文档用的静态配图，不是 Godot 资源；
 # 编辑器扫描时生成的 .import / .uid 属于本地缓存，禁止入库
 docs/**/*.import
