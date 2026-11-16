@@ -37,7 +37,6 @@ mirror_burst_interval = 0.0
 mirror_bullet_speed = 0.0
 mirror_bullet_dmg_mult = 0.0
 false_pickup_hp_penalty = 0.0
-false_pickup_color = Color(1.0, 0.55, 0.1)
 link_link_radius = 0.0
 link_dmg_share_ratio = 0.0
 wraith_crystal_boost_per_crystal = 0.0

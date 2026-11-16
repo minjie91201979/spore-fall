@@ -72,6 +72,10 @@ var _wraith_steal_t: float = 0.0          # 偷晶体计时器
 # wraith 追踪弹速度倍数（比 normal bullet 慢 15%，保持「低追踪度」感观）
 const WRAITH_BULLET_SPEED_MULT := 0.85
 
+# §11.16 链结对静态注册表（类级字典）：key=instance_id，value=对家的 instance_id
+# 替代全局 Autoload LinkSystem，避免与 Node tree 生命周期绑定且零耦合。
+var _static_links: Dictionary = {}
+
 func _ready() -> void:
 	add_to_group("enemy")
 	_default_tex = $Sprite.texture   # 池化复用的贴图还原基准
@@ -733,17 +737,20 @@ func _spawn_pickup(kind: String, pos: Vector2, weapon_id: String = "") -> void:
 func _register_link(partner_id: int, stats_others: EnemyStats) -> bool:
 	if _link_partner_id != -1:
 		return false   # 已有对家，拒绝二次绑定
-	var ok := LinkSystem.register(get_instance_id(), partner_id)
-	if ok:
-		_link_partner_id = partner_id
-		EventBus.enemy_kin.connect(_on_link_sharing)   # 订阅链结伤害广播
-	return ok
+	var my_id: int = get_instance_id()
+	if _static_links.has(my_id) or _static_links.has(partner_id):
+		return false   # 任一方已被其他 linker 占用
+	_static_links[my_id] = partner_id
+	_static_links[partner_id] = my_id
+	_link_partner_id = partner_id
+	return true
 
 ## §11.16 Linker：解除链结对（死亡或池化复用前）
 func _dissolve_link() -> void:
 	if _link_partner_id == -1:
 		return
-	LinkSystem.dissolve(get_instance_id())
+	_static_links.erase(get_instance_id())
+	_static_links.erase(_link_partner_id)
 	_link_partner_id = -1
 
 ## §11.16 Linker：damage 传入时同步给 partner（对方 take_damage 也会被同样调用，
@@ -751,12 +758,26 @@ func _dissolve_link() -> void:
 func apply_link_sharing(src_id: int, amount: float) -> float:
 	if _link_partner_id == -1 or src_id != _link_partner_id:
 		return amount
+	# 通过静态字典找对家节点
+	var partner_id: int = _static_links.get(get_instance_id(), -1)
+	if partner_id == -1:
+		return amount
+	var partner_node: Node = _find_enemy_by_id(partner_id)
+	if partner_node == null or not is_instance_valid(partner_node):
+		return amount
 	# partner 最多承受自身 max_health 的 20%（防瞬杀），超出仍由 src 吃
-	var partner_node: Node = get_tree().get_first_node_in_group("enemy")
-	var capped_share: float = minf(amount * 0.5, get("max_health") * 0.2)
-	if is_instance_valid(partner_node) and partner_node.has_method("take_damage"):
+	var partner_max_hp: float = partner_node.get("max_health") as float
+	var capped_share: float = minf(amount * 0.5, partner_max_hp * 0.2)
+	if partner_node.has_method("take_damage"):
 		partner_node.take_damage(capped_share)
 	return amount - capped_share
+
+## 根据 instance_id 在 enemy 组里查找对应节点
+static func _find_enemy_by_id(id: int) -> Node:
+	for enemy in get_tree().get_nodes_in_group("enemy"):
+		if enemy.get_instance_id() == id:
+			return enemy
+	return null
 
 ## §11.14 Mirror Spore：镜像 burst — 按缓存中的 player 方向射出 2 颗低追踪度弹
 func _try_mirror_burst() -> void:
@@ -813,4 +834,3 @@ func _spawn_false_pickup(pos: Vector2) -> void:
 	pk.fake_hp_penalty = (stats.false_pickup_hp_penalty if stats else 30.0)
 	pk.position = pos
 	get_tree().current_scene.add_child(pk)
-
