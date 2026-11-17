@@ -85,6 +85,11 @@ func _physics_process(delta: float) -> void:
 			queue_free()
 			return
 		visible = _life > 3.0 or fmod(_life, 0.3) > 0.15
+	# §Wave3 P3 覆写协议：冻结期间晶体停在原地，玩家贴上去也吸不动、捡不了
+	if GameState.pickup_frozen:
+		modulate.a = 0.45 + 0.25 * sin(_t * 8.0)   # 灰暗闪烁提示「被覆写」
+		return
+	modulate.a = 1.0
 	# 磁吸 + 拾取（玩家死亡后不再吸）
 	if is_instance_valid(_player) and not _player.get("is_dead"):
 		var d: float = global_position.distance_to(_player.global_position)

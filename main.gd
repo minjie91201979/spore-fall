@@ -60,6 +60,8 @@ static func default_mods() -> Dictionary:
 # 精英/Boss 高潮点（§11.4.4）：同一时间只允许一只，存活期间暂停常规刷怪
 var boss_active: bool = false
 var bosses_spawned: int = 0
+# §Wave3 P3「覆写协议」：全场 pickup 冻结（含磁吸与拾取），3s 后自动解除
+var pickup_frozen: bool = false
 
 # 本地最高分（标题页展示 / 结算页判定新纪录）
 # 可写路径：探针改成临时文件，避免污染玩家真实最高分存档
@@ -163,6 +165,7 @@ func _reset_combat_state() -> void:
 		get_tree().paused = false
 	boss_active = false
 	bosses_spawned = 0
+	pickup_frozen = false
 
 # 剧情死亡：只通知界面回安全屋。禁止写 save.cfg / career.cfg。
 func fail_story() -> void:

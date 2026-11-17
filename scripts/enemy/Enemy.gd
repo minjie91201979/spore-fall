@@ -64,6 +64,9 @@ var _last_skill: int = -1
 # ---- §Wave3 织理者三阶段（HP 阈值 P1>66% / P2 33~66% / P3<33%）----
 var _loom_phase: int = 1
 var _loom_is_active: bool = false   # 仅 behavior == "loomweaver" 时启用
+var _loom_effect_nodes: Array[Node] = []   # P2 反射柱 / 织线，死亡时统一清理
+var _loom_pillars: Array[Node] = []        # 反射柱单独存，进 P3 时切红色高频闪
+var _loom_false_burst_t: float = 0.0       # P3 伪晶体密度 ×4 的补刷计时
 
 # ---- Wave 3 新变种状态机（§11.14 Mirror Spore / §11.16 Linker / §11.17 Crystal Wraith）----
 # mirror_cache：记录玩家最近移动方向 FIFO，满 mirror_cache_size 条即触发镜像 burst
@@ -127,6 +130,10 @@ func reset_for_reuse() -> void:
 	_link_share_incoming = false
 	_wraith_crystal_count = 0
 	_wraith_steal_t = 0.0
+	# ── 织理者阶段状态清零（池化复用必须清，否则上一只 Boss 的 P3 残留到杂兵）──
+	_clear_loom_effects()
+	_loom_is_active = false
+	_loom_phase = 1
 
 # 刷怪器选种后调用：设定变种参数并按数据应用视觉（染色/体型）
 # hp_mult：Boss 每轮出现按血量倍率递增，避免后期武器成长后秒杀
@@ -150,8 +157,10 @@ func configure(s: EnemyStats, hp_mult: float = 1.0, is_split_child: bool = false
 	_ranged_cd = _first_ranged_cd()
 	_skill_cd = 4.0
 	_last_skill = -1
+	_clear_loom_effects()   # configure 也可能复用已挂过阶段的池对象
 	_loom_is_active = (s.behavior == "loomweaver")
 	_loom_phase = 1
+	_loom_false_burst_t = 0.0
 	_apply_visual()
 	if is_boss:
 		add_to_group("boss")
@@ -456,6 +465,8 @@ func _spawn_bullet(pos: Vector2, dir: Vector2, dmg: float, spd: float, opts: Dic
 # 前摇 0.55s 是「可躲窗口」：玩家 220px/s 能在突进路径上侧移出判定圈。
 # Boss 不做绕障（体型大、直线冲锋更符合直觉），撞柱交给 move_and_slide 滑动。
 func _boss_update(delta: float, speed: float, dir: Vector2, dist: float) -> void:
+	# P3 全局规则补刷（伪晶体密度×4 / 镜影孢频率×2），与技能冷却独立
+	_tick_loom_p3_field(delta)
 	match _charge_state:
 		0:
 			_charge_cd -= delta
@@ -506,7 +517,9 @@ func _begin_skill(dist: float) -> void:
 	if stats and stats.summon_stats != null:
 		pool.append(2)   # 没配召唤谱就只在弹幕/喷息里选
 	if _loom_is_active and _loom_phase >= 2:
-		pool.append(3)   # 克隆降临：方案A 先复用召唤逻辑，方案B 换成真幻影
+		pool.append(3)   # 克隆降临（真幻影，方案B）
+	if _loom_is_active and _loom_phase >= 3:
+		pool.append(4)   # 覆写协议：冻结全场 pickup 3s
 	if pool.has(_last_skill) and pool.size() > 1:
 		pool.erase(_last_skill)
 	_skill_pending = pool[randi() % pool.size()]
@@ -519,6 +532,7 @@ func _begin_skill(dist: float) -> void:
 		1: _flash_tint(Color(0.65, 1.0, 0.4), 0.12)    # 剧毒喷息：毒绿
 		2: _flash_tint(Color(1.0, 0.94, 0.75), 0.12)   # 巢群召唤：暖白
 		3: _flash_tint(Color(0.55, 0.75, 1.0), 0.12)   # 克隆降临：电蓝
+		4: _flash_tint(Color(0.35, 0.35, 0.4), 0.12)   # 覆写协议：灰白
 	Sfx.play("hurt", 0.6, 3.0)
 
 # 技能出招瞬间：弹全部立即生成（扇形瞄准玩家当前位置），随后回追击态
@@ -569,11 +583,52 @@ func _cast_skill() -> void:
 			Juice.add_trauma(0.3)
 			_summon_brood()
 		3:
-			# 克隆降临（方案A：复用召唤谱作为幻影的临时实现）
-			# 方案B 会替换成真正的「受击不扣血 + 2s 自毁掉伪晶体」幻影单位
+			# §Wave3 P2 克隆降临：召唤幻影（受击不扣血、2s 自毁掉伪晶体）
 			Sfx.play("hurt", 0.8, 5.0)
 			Juice.add_trauma(0.35)
-			_summon_brood()
+			_spawn_loom_clones(3 if _loom_phase >= 3 else 2)
+		4:
+			# §Wave3 P3 覆写协议：冻结全场 pickup 3s（含磁吸），到期自动解除
+			Sfx.play("hurt", 0.5, -6.0)
+			Juice.add_trauma(0.4)
+			_execute_rewrite_protocol()
+
+## §Wave3 P2 克隆降临：独立 instantiate 幻影，2s 后自毁并各掉一颗伪晶体。
+## ⚠️ 不能走 enemy_pool.acquire()+set_script：改过的脚本 release 后不会还原，
+##    下次刷怪 configure() 打到 LoomClone 会整条刷怪链崩（B1 修复）。
+##    幻影每次仅 2~3 只，自建自销，无实例化尖峰。
+func _spawn_loom_clones(count: int) -> void:
+	var clone_scene: PackedScene = load("res://scenes/world/Enemy.tscn")
+	var clone_script: GDScript = load("res://scripts/enemy/LoomClone.gd")
+	if clone_scene == null or clone_script == null:
+		return
+	for i in count:
+		var e: Node2D = clone_scene.instantiate() as Node2D
+		if e == null:
+			return
+		# 入树前换脚本：Enemy.gd 的 _ready（注册 enemy 组 / 描边 / 导航）不会执行，
+		# 幻影因此不计入击杀与同屏上限；且全程不碰 enemy_pool，杜绝脚本污染。
+		e.set_script(clone_script)
+		get_tree().current_scene.add_child(e)
+		if e.has_method("configure_clone"):
+			e.call("configure_clone", stats, self)
+		var a: float = TAU * float(i) / float(count) + randf() * 0.4
+		e.global_position = global_position + Vector2(cos(a), sin(a)) * 130.0
+		_loom_effect_nodes.append(e)
+
+## §Wave3 P3 覆写协议：冻结全场拾取 3 秒，用 Timer 到期自动解冻。
+func _execute_rewrite_protocol() -> void:
+	GameState.pickup_frozen = true
+	var timer := Timer.new()
+	timer.one_shot = true
+	timer.wait_time = 3.0
+	timer.timeout.connect(func() -> void:
+		GameState.pickup_frozen = false
+		EventBus.boss_phase_changed.emit(_loom_phase, "OVERWRITE_END")   # UI 可据此解除灰屏
+	)
+	add_child(timer)
+	timer.start()
+	_loom_effect_nodes.append(timer)
 
 # 召唤杂兵：同分裂体一样受 alive<140 上限保护。
 # 入场后走杂兵同一套导航追击，会绕开已经烘焙进网格的柱子。
@@ -661,6 +716,86 @@ func _update_loom_phase() -> void:
 	Juice.haptic(90)
 	Sfx.play("hurt", 0.7, -2.0)
 	_flash_tint(Color(1.0, 0.55, 0.35) if _loom_phase == 2 else Color(1.0, 0.28, 0.24), 0.3)
+	# 场地机制按阶段展开：P2 反射柱+2 织线；P3 柱转红高频+补 2 织线+伪晶体密度×4
+	if _loom_phase == 2:
+		_spawn_loom_pillars()
+		_spawn_loom_threads(2)
+	else:
+		for p in _loom_pillars:
+			if is_instance_valid(p) and p.has_method("set_phase"):
+				p.set_phase(3)
+		_spawn_loom_threads(2)
+		_loom_false_burst_t = 0.0   # 下一帧立刻开始补伪晶体
+
+# ── §Wave3 P2 场地机制：镜像反射柱 ×3（竞技场对角线对称点）──
+func _spawn_loom_pillars() -> void:
+	if not _loom_pillars.is_empty():
+		return
+	var pillar_script: GDScript = load("res://scripts/enemy/LoomPillar.gd")
+	if pillar_script == null:
+		return
+	# 三根柱位于对角线对称点：竞技场中心 + 三等分角，半径 300
+	var angles: Array[float] = [PI * 0.5, PI * 7.0 / 6.0, PI * 11.0 / 6.0]
+	for a in angles:
+		var col: Area2D = Area2D.new()
+		col.set_script(pillar_script)   # _ready 自行建 CollisionShape / 视觉，无需 .tscn
+		get_tree().current_scene.add_child(col)
+		col.global_position = Vector2(cos(a), sin(a)) * 300.0
+		if col.has_method("configure"):
+			col.configure(_loom_phase)
+		_loom_pillars.append(col)
+		_loom_effect_nodes.append(col)
+
+# ── §Wave3 织理者的线：spawn n 条对角交叉线，收缩后消失点掉伪晶体 ──
+func _spawn_loom_threads(n: int) -> void:
+	var thread_script: GDScript = load("res://scripts/enemy/LoomThread.gd")
+	if thread_script == null:
+		return
+	for i in n:
+		var t: Node2D = Node2D.new()
+		t.set_script(thread_script)
+		get_tree().current_scene.add_child(t)
+		# 两条对角线方向，半径 340 穿过竞技场
+		var a: float = PI * 0.25 + PI * 0.5 * float(i % 2) + randf_range(-0.08, 0.08)
+		var axis: Vector2 = Vector2(cos(a), sin(a)) * 340.0
+		if t.has_method("configure"):
+			t.configure(axis, -axis)
+		_loom_effect_nodes.append(t)
+
+# ── P3 全局规则：伪晶体密度 ×4 + 镜影孢刷新频率 ×2 ──
+# 用 Boss 自带计时器在物理帧内补刷（Boss 战期间 Spawner 暂停，不能靠改 Spawner 权重）。
+func _tick_loom_p3_field(delta: float) -> void:
+	if not _loom_is_active or _loom_phase < 3:
+		return
+	_loom_false_burst_t -= delta
+	if _loom_false_burst_t > 0.0:
+		return
+	_loom_false_burst_t = 2.2
+	# 伪晶体密度 ×4：每轮补 4 颗，散布在玩家周围 120~260px（短时间即可堆到 ≥10）
+	var pl: Node2D = get_tree().get_first_node_in_group("player")
+	var center: Vector2 = pl.global_position if is_instance_valid(pl) else global_position
+	for i in 4:
+		var a: float = randf() * TAU
+		_spawn_pickup("false", center + Vector2(cos(a), sin(a)) * randf_range(120.0, 260.0))
+	# 镜影孢刷新间隔 ×0.5：每轮额外补 1 只 mirror（正常波次间隔约每 4s 1 只）
+	var pool: Node = get_tree().get_first_node_in_group("enemy_pool")
+	if pool and is_instance_valid(pl):
+		var e: Node2D = pool.acquire(get_tree().current_scene) as Node2D
+		if e and e.has_method("configure"):
+			e.configure(load("res://assets/data/enemy_mirror.tres"))
+			var a2: float = randf() * TAU
+			e.global_position = center + Vector2(cos(a2), sin(a2)) * randf_range(280.0, 380.0)
+
+# ── 统一清理阶段机制节点（死亡 / 池化复用前调用）──
+func _clear_loom_effects() -> void:
+	for n in _loom_effect_nodes:
+		if is_instance_valid(n):
+			n.queue_free()
+	_loom_effect_nodes.clear()
+	_loom_pillars.clear()
+	# 覆写协议冻结若还没到期就被中断（Boss 中途死亡），立即解冻避免永久卡住拾取
+	if GameState.pickup_frozen:
+		GameState.pickup_frozen = false
 
 func _die() -> void:
 	active = false            # 立即停摆，避免后续子弹同帧再触发
@@ -676,6 +811,7 @@ func _die() -> void:
 	_deferred_die.call_deferred()
 
 func _deferred_die() -> void:
+	_clear_loom_effects()   # Boss 倒下立刻撤掉反射柱/织线/冻结，杜绝状态残留
 	_drop_loot()
 	# 血水残迹：留一滩对应变种颜色的体液渍，溅开 → 存留数秒 → 淡出（§11.4.3 击杀反馈）
 	var blood: Color = _blood_color()
