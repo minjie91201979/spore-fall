@@ -11,6 +11,8 @@ signal weapon_dry_fired
 signal boss_spawned(display_name: String, max_health: float)
 signal boss_damaged(health: float, max_health: float)
 signal boss_defeated(display_name: String)
+# §Wave3 织理者三阶段：HP 阈值切换时广播，BossBar 显示阶段名与颜色
+signal boss_phase_changed(phase: int, display_name: String)
 
 # 画质档位切换（§11.6）：HUD 按钮文案等 UI 跟随刷新
 signal quality_changed(level: int)

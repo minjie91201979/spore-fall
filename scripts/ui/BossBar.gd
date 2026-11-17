@@ -15,9 +15,33 @@ func _ready() -> void:
 	EventBus.boss_spawned.connect(_on_boss_spawned)
 	EventBus.boss_damaged.connect(_on_boss_damaged)
 	EventBus.boss_defeated.connect(_on_boss_defeated)
+	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
 	GameState.game_over.connect(_on_game_over)
 	visible = false
 	modulate.a = 0.0
+
+# §Wave3 织理者阶段标签：复用 TagLabel，不新增节点
+const PHASE_LABELS := {
+	1: "P1 · 初 始 织 造    /    INITIAL WEAVE",
+	2: "P2 · 镜 像 域 展 开    /    MIRROR DOMAIN",
+	3: "P3 · 终 末 编 织    /    FINAL WEAVE",
+}
+const PHASE_COLORS := {
+	1: Color(1, 0.56, 0.69, 0.95),
+	2: Color(0.42, 0.78, 1.0, 1.0),
+	3: Color(1.0, 0.42, 0.32, 1.0),
+}
+
+func _on_boss_phase_changed(phase: int, _display_name: String) -> void:
+	if not visible:
+		return
+	tag_label.text = PHASE_LABELS.get(phase, "精 英 个 体 · ELITE")
+	tag_label.modulate = PHASE_COLORS.get(phase, Color.WHITE)
+	# 阶段跃迁闪一下：让玩家一眼看到规则变了
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_property(tag_label, "modulate:a", 0.2, 0.08)
+	tw.tween_property(tag_label, "modulate:a", 1.0, 0.18)
 
 # 玩家死亡：血条立即让位给结算面板
 func _on_game_over(_score: int, _time: float) -> void:
@@ -25,6 +49,7 @@ func _on_game_over(_score: int, _time: float) -> void:
 
 func _on_boss_spawned(boss_name: String, max_hp: float) -> void:
 	tag_label.text = "精 英 个 体 · ELITE"
+	tag_label.modulate = Color.WHITE   # 清掉上一局阶段色的残留
 	name_label.text = boss_name
 	name_label.modulate = Color.WHITE
 	hp_text.text = "%d / %d" % [int(max_hp), int(max_hp)]

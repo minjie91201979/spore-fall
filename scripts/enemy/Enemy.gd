@@ -61,6 +61,10 @@ var _skill_cd: float = 4.0
 var _skill_pending: int = 0
 var _last_skill: int = -1
 
+# ---- §Wave3 织理者三阶段（HP 阈值 P1>66% / P2 33~66% / P3<33%）----
+var _loom_phase: int = 1
+var _loom_is_active: bool = false   # 仅 behavior == "loomweaver" 时启用
+
 # ---- Wave 3 新变种状态机（§11.14 Mirror Spore / §11.16 Linker / §11.17 Crystal Wraith）----
 # mirror_cache：记录玩家最近移动方向 FIFO，满 mirror_cache_size 条即触发镜像 burst
 var _mirror_cache: Array[Vector2] = []
@@ -146,6 +150,8 @@ func configure(s: EnemyStats, hp_mult: float = 1.0, is_split_child: bool = false
 	_ranged_cd = _first_ranged_cd()
 	_skill_cd = 4.0
 	_last_skill = -1
+	_loom_is_active = (s.behavior == "loomweaver")
+	_loom_phase = 1
 	_apply_visual()
 	if is_boss:
 		add_to_group("boss")
@@ -492,11 +498,15 @@ func _boss_update(delta: float, speed: float, dir: Vector2, dist: float) -> void
 			if _charge_t <= 0.0:
 				_cast_skill()
 
-# 随机三选一（不连续重复同一招），按技能定前摇时长与预警色
+# 随机选招（不连续重复），按阶段扩展技能池：
+# P1 弹幕/喷息；P2 加「克隆降临」(技能3)；P3 加「覆写协议」(技能4，方案B实装)
+# 这里先让 P2/P3 的选招池与预警色生效，强度递增在 _cast_skill。
 func _begin_skill(dist: float) -> void:
 	var pool: Array[int] = [0, 1]
 	if stats and stats.summon_stats != null:
 		pool.append(2)   # 没配召唤谱就只在弹幕/喷息里选
+	if _loom_is_active and _loom_phase >= 2:
+		pool.append(3)   # 克隆降临：方案A 先复用召唤逻辑，方案B 换成真幻影
 	if pool.has(_last_skill) and pool.size() > 1:
 		pool.erase(_last_skill)
 	_skill_pending = pool[randi() % pool.size()]
@@ -508,6 +518,7 @@ func _begin_skill(dist: float) -> void:
 		0: _flash_tint(Color(0.85, 0.45, 1.0), 0.12)   # 弹幕环：紫
 		1: _flash_tint(Color(0.65, 1.0, 0.4), 0.12)    # 剧毒喷息：毒绿
 		2: _flash_tint(Color(1.0, 0.94, 0.75), 0.12)   # 巢群召唤：暖白
+		3: _flash_tint(Color(0.55, 0.75, 1.0), 0.12)   # 克隆降临：电蓝
 	Sfx.play("hurt", 0.6, 3.0)
 
 # 技能出招瞬间：弹全部立即生成（扇形瞄准玩家当前位置），随后回追击态
@@ -522,9 +533,11 @@ func _cast_skill() -> void:
 	match _skill_pending:
 		0:
 			# 孢子弹幕：360° 环形中速毒团，无云无毒，纯封锁走位
+			# §Wave3 P2 弹数 +2 / P3 +4（文档：6→8），阶段越高封锁越密
 			Sfx.play("spit", 0.8)
 			Juice.add_trauma(0.25)
-			var n: int = maxi(6, stats.radial_count)
+			var phase_bonus: int = 0 if not _loom_is_active else (0 if _loom_phase == 1 else (2 if _loom_phase == 2 else 4))
+			var n: int = maxi(6, stats.radial_count) + phase_bonus
 			var a0: float = randf() * TAU   # 随机起始角，别让玩家背板站位
 			for i in n:
 				var a: float = a0 + TAU * float(i) / float(n)
@@ -554,6 +567,12 @@ func _cast_skill() -> void:
 			# 巢群召唤：从池里取杂兵围在 Boss 周一圈（受同屏上限约束）
 			Sfx.play("hurt", 0.7, 4.0)
 			Juice.add_trauma(0.3)
+			_summon_brood()
+		3:
+			# 克隆降临（方案A：复用召唤谱作为幻影的临时实现）
+			# 方案B 会替换成真正的「受击不扣血 + 2s 自毁掉伪晶体」幻影单位
+			Sfx.play("hurt", 0.8, 5.0)
+			Juice.add_trauma(0.35)
 			_summon_brood()
 
 # 召唤杂兵：同分裂体一样受 alive<140 上限保护。
@@ -618,8 +637,30 @@ func take_damage(amount: float) -> void:
 	Sfx.play("hit")
 	if is_boss:
 		EventBus.boss_damaged.emit(maxf(health, 0.0), max_health)
+	if _loom_is_active:
+		_update_loom_phase()
 	if health <= 0:
 		_die()
+
+## §Wave3 织理者阶段推进：HP 阈值不可逆（P1→P2→P3）。
+## 切换瞬间广播给 BossBar 显示阶段名，并给一次可读的全屏震动 + 染色。
+func _update_loom_phase() -> void:
+	if max_health <= 0.0:
+		return
+	var ratio: float = health / max_health
+	var target: int = 1
+	if ratio <= 0.33:
+		target = 3
+	elif ratio <= 0.66:
+		target = 2
+	if target <= _loom_phase:
+		return   # 不可逆，也不回退
+	_loom_phase = target
+	EventBus.boss_phase_changed.emit(_loom_phase, stats.display_name if stats else "织理者")
+	Juice.add_trauma(0.55)
+	Juice.haptic(90)
+	Sfx.play("hurt", 0.7, -2.0)
+	_flash_tint(Color(1.0, 0.55, 0.35) if _loom_phase == 2 else Color(1.0, 0.28, 0.24), 0.3)
 
 func _die() -> void:
 	active = false            # 立即停摆，避免后续子弹同帧再触发
