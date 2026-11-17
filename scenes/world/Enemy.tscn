@@ -35,5 +35,13 @@ scale = Vector2(0.19, 0.19)
 [node name="KillParticles" type="GPUParticles2D" parent="."]
 emitting = false
 
+[node name="LinkLine" type="Line2D" parent="."]
+visible = false
+z_index = -1
+width = 3.0
+joint_mode = 2
+cap_style = 2
+default_color = Color(1, 0.85, 0.35, 0.55)
+
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("circle_shape")

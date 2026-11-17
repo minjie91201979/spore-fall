@@ -35,7 +35,7 @@ const LINKER := preload("res://assets/data/enemy_linker.tres")
 const WRAITH := preload("res://assets/data/enemy_wraith.tres")
 const LOOM_WEAVER := preload("res://assets/data/enemy_loomweaver.tres")
 
-@export var wave1_delay: float = 45.0        # 开局铺垫期：先让玩家捡到武器再上 BOSS
+@export var wave1_delay: float = 25.0        # 开局铺垫期：先让玩家捡到武器再上 BOSS（45s→25s，减少干等）
 @export var wave2_delay: float = 14.0        # 第二波开始到渊噬孢登场的间隔
 @export var reinforce_at: float = 6.0        # 第二波中途补怪时刻（相对第二波开始）
 @export var boss_spawn_radius: float = 460.0 # Boss 在玩家周围的登场距离

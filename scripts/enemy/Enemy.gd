@@ -18,6 +18,7 @@ const FRAME_PLAYER_SCRIPT := preload("res://scripts/enemy/FramePlayer.gd")
 @onready var nav_agent: NavigationAgent2D = $NavigationAgent2D
 @onready var particles: GPUParticles2D = $KillParticles
 @onready var outline: Sprite2D = $Outline
+@onready var link_line: Line2D = $LinkLine
 
 # 帧序列播放器（§11.15）：全部运动来自按序排列的帧图片，不做任何程序化变换
 var frames = FRAME_PLAYER_SCRIPT.new()
@@ -248,6 +249,25 @@ func _set_nav_query(enabled: bool) -> void:
 func _process(delta: float) -> void:
 	if active:
 		frames.tick(delta)
+		_update_link_line()
+	elif is_instance_valid(link_line) and link_line.visible:
+		link_line.visible = false
+
+## §11.16 Linker 视觉：把到对家的能量索画出来（局部坐标，随本体移动）。
+## 只由 instance_id 较小的一方绘制，避免两条线叠加成双倍亮度。
+func _update_link_line() -> void:
+	if not is_instance_valid(link_line):
+		return
+	if _link_partner_id == -1 or get_instance_id() > _link_partner_id:
+		link_line.visible = false
+		return
+	var partner_node: Node = _find_enemy_by_id(_link_partner_id)
+	if partner_node == null or not is_instance_valid(partner_node) or not partner_node.get("active"):
+		link_line.visible = false
+		return
+	var local_target: Vector2 = to_local(partner_node.global_position)
+	link_line.points = PackedVector2Array([Vector2.ZERO, local_target])
+	link_line.visible = true
 
 func _physics_process(delta: float) -> void:
 	if not active or not is_instance_valid(_player):
@@ -750,6 +770,7 @@ func _register_link(partner_id: int, stats_others: EnemyStats) -> bool:
 	_static_links[my_id] = partner_id
 	_static_links[partner_id] = my_id
 	_link_partner_id = partner_id
+	_update_link_line()   # 立即出线，不等下一帧
 	return true
 
 ## §11.16 Linker：解除链结对（死亡或池化复用前）。
