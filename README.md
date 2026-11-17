@@ -199,6 +199,14 @@ spore-fall/
 
 > 引擎已定 Godot 4（§5.3 / §11），开源免费、2D 管线成熟。本工程用 GL Compatibility 渲染后端，兼容性与低端机更稳。
 
+## 回归测试
+
+`bash run_tests.sh` 聚合全部 `extends SceneTree` 功能探针（21 个），逐个带 60s 超时，汇总断言数与脚本错误；`bash run_tests.sh wave` 可按名字过滤。兼容 `PREFIX_PASS=n FAIL=m`（精确计数）与 `PROBE_RESULT=PASS/FAIL`（布尔式）两种探针输出。
+
+`probe_upgrade_click`（暂停态下真实鼠标点击选卡）必须走真实字体度量，headless 的 dummy 字体把卡片撑高会让点击坐标从 y≈365 漂到 y≈617 必然打空——测试环境差异，非 UI bug。用 `bash run_tests.sh --render` 以非 headless 模式单独跑它。
+
+`extends Node` 的探针（`probe_pool` / `probe_pickup` / `probe_frame` 等）是截图/临时探针，需挂进场景运行，不在聚合入口内。
+
 ## 导出与交付
 
 - Windows：`Godot --headless --path . --export-release "Windows Desktop"` → `build/SporeFall.exe`

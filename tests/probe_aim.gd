@@ -71,8 +71,13 @@ func _initialize() -> void:
 	print("NO_TARGET aim=%s bullet=%s ok=%s" % [empty_aim, fallback_dir, fallback_ok])
 
 	# ---------- ④ 关掉自动瞄准回退老手感 ----------
+	# auto_aim 已从 TouchInput 迁到 Settings autoload（GameSettings.gd），
+	# Player._fire() 读的也是 Settings.auto_aim。用临时 config 路径避免污染真实设置存档。
 	left.set("active", true)
-	ti.auto_aim = false
+	var settings := get_root().get_node_or_null("Settings")
+	var old_path: String = settings.config_path
+	settings.config_path = "user://settings_probe_aim.cfg"
+	settings.auto_aim = false   # 直接改内存值，不落盘
 	p._fire_cd = 0.0
 	var before3 := _bullets()
 	p.fire()
@@ -83,7 +88,8 @@ func _initialize() -> void:
 			break
 	var manual_ok: bool = manual_dir.x > 0.9
 	print("MANUAL_MODE bullet=%s ok=%s" % [manual_dir, manual_ok])
-	ti.auto_aim = true
+	settings.auto_aim = true
+	settings.config_path = old_path
 
 	# ---------- ⑤ 速度表 ----------
 	var expect := {

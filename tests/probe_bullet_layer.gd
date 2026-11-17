@@ -22,9 +22,11 @@ func _initialize() -> void:
 	var hp_before: float = e.health
 	var bullet_scene: PackedScene = load("res://scenes/world/Bullet.tscn")
 	var b: Area2D = bullet_scene.instantiate()
-	b.setup(Vector2.RIGHT, 12.0)
-	current_scene.add_child(b)
+	# 先摆位再入树（对象池纪律）；且 setup() 依赖 @onready 的 _spr/_col，
+	# 必须在 add_child（_ready 执行）之后调用，否则 _spr 为 Nil 报脚本错误。
 	b.global_position = p.global_position + Vector2(20.0, 0.0)
+	current_scene.add_child(b)
+	b.setup(Vector2.RIGHT, 12.0)
 	for i in 40:   # 最多 40 物理帧等命中（620px/s × 40帧 ≈ 413px 覆盖 120px 距离）
 		await physics_frame
 		if e.health < hp_before or not is_instance_valid(e) or not e.active:

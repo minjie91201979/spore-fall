@@ -1,16 +1,18 @@
 #!/usr/bin/env bash
 # 《孢城 SPORE FALL》回归测试聚合入口
 # 用法：
-#   bash run_tests.sh            # 跑全套稳定探针，汇总 PASS / FAIL
+#   bash run_tests.sh            # 跑全套 headless 探针，汇总 PASS / FAIL
 #   bash run_tests.sh wave       # 只跑名字含 'wave' 的探针
 #   bash run_tests.sh boss_w3    # 只跑织理者完整机制探针
+#   bash run_tests.sh --render   # 追加真渲染专属探针（需桌面/OpenGL，无头环境跳过）
 #
 # 说明：
 #   - 只收 extends SceneTree 的功能探针（可 --script 独立运行）。
 #     extends Node 的探针（probe_pool / probe_pickup / probe_frame / probe_attacks 等）
 #     是截图/临时探针，需挂到场景里跑，不在此入口内。
-#   - probe_aim / probe_bullet_layer / probe_upgrade_click 因历史遗留脚本错误暂不纳入
-#     （与 Wave3 无关：TouchInput.auto_aim 等），修复后再加回列表。
+#   - probe_upgrade_click 必须真渲染跑：headless 下 dummy 字体度量把卡片撑高，
+#     点击坐标从 y≈365 漂到 y≈617 必然打空（测试环境差异，非 UI bug）。
+#     用 --render 参数单独以非 --headless 模式运行它。
 #   - 每个探针带 60s 超时，防止交互类探针挂死拖垮整批。
 #   - 兼容两种探针汇总格式：`PREFIX_PASS=n FAIL=m`（精确断言计数）
 #     与 `PROBE_RESULT=PASS/FAIL`（布尔式探针）。
@@ -18,10 +20,19 @@
 set -u
 cd "$(dirname "$0")"
 GODOT="${GODOT:-./godot.exe}"
-FILTER="${1:-}"
+RENDER_MODE=0
+FILTER=""
+for arg in "$@"; do
+  case "$arg" in
+    --render) RENDER_MODE=1 ;;
+    *) FILTER="$arg" ;;
+  esac
+done
 
-# 稳定功能探针清单（全部 extends SceneTree）
+# 稳定 headless 功能探针清单（全部 extends SceneTree）
 PROBES=(
+  "probe_aim"
+  "probe_bullet_layer"
   "probe_wave"
   "probe_wave3"
   "probe_wave_timing"
@@ -95,6 +106,26 @@ for name in "${PROBES[@]}"; do
   printf "%-20s %-8s %-10s %-4s\n" "$name" "$result" "$asserts" "$errs"
   ran=$((ran + 1))
 done
+
+# ---- 真渲染专属探针：headless 下字体度量不同会误报，故默认跳过，--render 才跑 ----
+if [[ "$RENDER_MODE" -eq 1 && ( -z "$FILTER" || "probe_upgrade_click" == *"$FILTER"* ) ]]; then
+  name="probe_upgrade_click"
+  echo ""; echo "[render-only] $name（非 headless，真实 OpenGL 字体度量）"
+  out=$(timeout 60s "$GODOT" --path . --script "tests/$name.gd" 2>&1)
+  rc=$?
+  bres=$(printf "%s\n" "$out" | grep -oE "PROBE_RESULT=[[:space:]]*(PASS|FAIL)" | tail -1 | grep -oE "(PASS|FAIL)")
+  errs=$(printf "%s\n" "$out" | grep -ciE "SCRIPT ERROR|Parse Error")
+  if [[ "$bres" == "PASS" && "$errs" -eq 0 && "$rc" -eq 0 ]]; then
+    printf "%-20s %-8s %-10s %-4s\n" "$name" "OK" "BOOL" "$errs"
+    ran=$((ran + 1))
+  else
+    printf "%-20s %-8s %-10s %-4s\n" "$name" "FAIL" "BOOL" "$errs"
+    printf "%s\n" "$out" | grep -E "CLICK|PROBE_RESULT" | tail -3
+    failed_probes=$((failed_probes + 1)); ran=$((ran + 1))
+  fi
+else
+  skipped=$((skipped + 1))   # probe_upgrade_click 未跑（需 --render）
+fi
 
 printf "%s\n" "--------------------------------------------------"
 printf "PROBES_RUN=%d SKIPPED=%d FAILED_PROBES=%d\n" "$ran" "$skipped" "$failed_probes"
