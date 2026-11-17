@@ -1,7 +1,11 @@
 extends SceneTree
 # 方案B 验收：织理者完整机制（docs/wave3-boss-state-machine.md §六 DoD 14 项）
 # 覆盖：阶段时序 / 技能冷却互斥 / HP 阈值 / 反射柱 teleport / 幻影免伤+自毁掉晶体 /
-#       覆写协议冻结与解冻 / P3 伪晶体密度×4 / 织线 spawn-收缩-消失 / 死亡清理无残留
+#       覆写协议冻结与解冻 / P3 伪晶体密度×4 / 织线 spawn-收缩-消失 / 死亡清理无状态残留
+#
+# ⚠️ 时序稳定性：不用 Engine.time_scale 放大 delta——那会让「幻影 2s 寿命」「伪晶体 12s 寿命」
+#    按放大后的游戏时间流逝，固定帧数等待时偶发提前过期（flaky）。改为真实倍率 + 条件轮询
+#    _wait_until()，条件满足即通过，与 headless 帧率无关。
 
 var gs: Node
 var bus: Node
@@ -10,7 +14,6 @@ var passc: int = 0
 var failc: int = 0
 
 func _initialize() -> void:
-	Engine.time_scale = 6.0   # 加速计时器类断言（2s 自毁 / 3s 解冻），逻辑不受影响
 	change_scene_to_file("res://scenes/world/Arena.tscn")
 	await _frames(15)
 	gs = get_root().get_node_or_null("GameState")
@@ -37,7 +40,7 @@ func _initialize() -> void:
 		boss._begin_skill(200.0)
 		p1_pool.append(boss._skill_pending)
 		boss._charge_state = 0
-	_check(not p1_pool.has(3) and not p1_pool.has(4), "D02_P1_SKILLS_NO_CLONE_REWRITE(%s)" % str(p1_pool))
+	_check(not p1_pool.has(3) and not p1_pool.has(4), "D02_P1_SKILLS_NO_CLONE_REWRITE")
 
 	# --- D03 HP 66% 切 P2 + 反射柱 ×3 + 织线 spawn ---
 	boss.take_damage(max_hp * 0.35)
@@ -73,7 +76,7 @@ func _initialize() -> void:
 		boss._begin_skill(200.0)
 		p2_pool.append(boss._skill_pending)
 		boss._charge_state = 0
-	_check(p2_pool.has(3) and not p2_pool.has(4), "D05_P2_POOL_CLONE_ONLY(%s)" % str(p2_pool))
+	_check(p2_pool.has(3) and not p2_pool.has(4), "D05_P2_POOL_CLONE_ONLY")
 
 	# --- D06 克隆降临：幻影免伤 + 2s 自毁掉伪晶体 ---
 	var false_before: int = _count_false_crystals()
@@ -87,11 +90,11 @@ func _initialize() -> void:
 		c.call("take_damage", 9999.0)
 		await _frames(1)
 		_check(was_active and bool(c.get("active")) and is_instance_valid(c), "D06_CLONE_IMMUNE_TO_DAMAGE")
-	# 等 2s 自毁（time_scale 6 下约 0.35s 真实时间）
-	await _frames(40)
+	# 条件轮询：等全部幻影自毁（2s 寿命 = 约 120 物理帧，上限 200 留余量）
+	var dissolved: bool = await _wait_until(func() -> bool: return _find_clones().is_empty(), 200)
 	var false_after: int = _count_false_crystals()
 	_check(false_after >= false_before + 3, "D06_CLONES_DROP_FALSE_CRYSTALS(%d->%d)" % [false_before, false_after])
-	_check(_find_clones().is_empty(), "D06_CLONES_DISSOLVED")
+	_check(dissolved, "D06_CLONES_DISSOLVED")
 
 	# --- D07 HP 33% 切 P3 + 反射柱转红(phase=3) ---
 	boss.take_damage(max_hp * 0.32)
@@ -109,7 +112,7 @@ func _initialize() -> void:
 		boss._begin_skill(200.0)
 		p3_pool.append(boss._skill_pending)
 		boss._charge_state = 0
-	_check(p3_pool.has(4), "D08_P3_POOL_HAS_REWRITE(%s)" % str(p3_pool))
+	_check(p3_pool.has(4), "D08_P3_POOL_HAS_REWRITE")
 
 	# --- D09 覆写协议：冻结全场 pickup ---
 	gs.pickup_frozen = false
@@ -117,9 +120,9 @@ func _initialize() -> void:
 	await _frames(2)
 	_check(bool(gs.pickup_frozen), "D09_REWRITE_FREEZES_PICKUPS")
 
-	# --- D10 3s 后自动解冻 ---
-	await _frames(60)   # time_scale 6：60 帧约 1s 真实 = 6s 逻辑，足够 3s 到期
-	_check(not bool(gs.pickup_frozen), "D10_REWRITE_UNFREEZES_AFTER_3S")
+	# --- D10 3s 后自动解冻（条件轮询，上限 260 物理帧 ≈ 4.3s）---
+	var unfrozen: bool = await _wait_until(func() -> bool: return not bool(gs.pickup_frozen), 260)
+	_check(unfrozen, "D10_REWRITE_UNFREEZES_AFTER_3S")
 
 	# --- D11 P3 伪晶体密度 ×4（短时间 ≥10）---
 	var before_density: int = _count_false_crystals()
@@ -136,8 +139,8 @@ func _initialize() -> void:
 		var fb: int = _count_false_crystals()
 		t.set("_start", Vector2.ZERO)
 		t.set("_end", Vector2(61.0, 0.0))   # 略大于 MIN_LEN=60，下一帧收缩即触发消失
-		await _frames(4)
-		_check(not is_instance_valid(t), "D12_THREAD_VANISHES")
+		var gone: bool = await _wait_until(func() -> bool: return not is_instance_valid(t), 30)
+		_check(gone, "D12_THREAD_VANISHES")
 		_check(_count_false_crystals() >= fb, "D12_THREAD_DROPS_CRYSTAL(%d->%d)" % [fb, _count_false_crystals()])
 	else:
 		_check(false, "D12_THREAD_EXISTS")
@@ -157,7 +160,6 @@ func _initialize() -> void:
 	_check(not bool(gs.pickup_frozen), "D14_FREEZE_CLEARED_ON_DEATH")
 	_check(boss._loom_effect_nodes.is_empty(), "D14_EFFECT_LIST_EMPTY")
 
-	Engine.time_scale = 1.0
 	print("BOSS_W3_PASS=%d FAIL=%d" % [passc, failc])
 	print("OK" if failc == 0 else "FAILED")
 	quit()
@@ -191,9 +193,18 @@ func _find_clones() -> Array:
 			out.append(n)
 	return out
 
+# 条件轮询：每物理帧检查一次 cond，满足返回 true，超过 max_frames 返回 false。
+# 用它替代固定帧数等待，消除 headless 帧率波动导致的 flaky。
+func _wait_until(cond: Callable, max_frames: int) -> bool:
+	for i in max_frames:
+		if cond.call():
+			return true
+		await physics_frame
+	return cond.call()
+
 func _frames(n: int) -> void:
 	for i in n:
-		await process_frame
+		await physics_frame
 
 func _check(cond: bool, label: String) -> void:
 	if cond:
@@ -202,7 +213,6 @@ func _check(cond: bool, label: String) -> void:
 		failc += 1; print("FAIL ", label)
 
 func _fail_exit() -> void:
-	Engine.time_scale = 1.0
 	print("BOSS_W3_PASS=%d FAIL=%d" % [passc, failc])
 	print("FAILED")
 	quit()
